@@ -124,7 +124,8 @@ class Ticket(models.Model):
     price = models.CharField(max_length=50, null=True, blank=True)
     side_no = models.CharField(max_length=20, null=True, blank=True)
     plate_no = models.CharField(max_length=20, null=True, blank=True)
-    username = models.CharField(max_length=20, null=True, blank=True)
+    #username = models.CharField(max_length=20, null=True, blank=True)
+    username = models.CharField(max_length=50, null=True, blank=True, default="Guest")
     booked_time = models.DateTimeField(default=timezone.now)
     qr_code = models.TextField(null=True, blank=True)
 

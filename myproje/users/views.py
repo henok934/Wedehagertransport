@@ -5383,7 +5383,8 @@ class TicketBookingViews(APIView):
                     'gender': genders[i],
                     'depcity': depcitys[i],
                     'descity': descitys[i],
-                    'username': usernames[i] if i < len(usernames) else "",
+                    #'username': usernames[i] if i < len(usernames) else "",
+                    'username': usernames[i] if (i < len(usernames) and usernames[i]) else "Guest",
                     'no_seat': current_seat,
                 }
                 ticket_instance = Ticket(**validated_data)
