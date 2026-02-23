@@ -75,7 +75,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'myproje.wsgi.application'
 
 # 4. DATABASE (PostgreSQL)
-
 """
 DATABASES = {
     'default': {
@@ -89,16 +88,38 @@ DATABASES = {
 }
 """
 
+
+import dj_database_url
+import os
+
+# This checks if we are on Render. If yes, it uses Render's DB.
+# If no, it uses your local PostgreSQL.
+if os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'my_app_db',
+            'USER': 'data',
+            'PASSWORD': 'Teklu@934',
+            'HOST': 'localhost',
+            'PORT': '5432',
+        }
+    }
+
 SECURE_SSL_REDIRECT = False
 
-
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
+"""
 # 5. AUTHENTICATION & USERS
 AUTH_USER_MODEL = 'users.CustomUser'
 AUTHENTICATION_BACKENDS = [
