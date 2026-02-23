@@ -64,25 +64,7 @@ class ProcessPaymentView(APIView):
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from .models import Buschange  # Adjust based on your actual model imports
-@extend_schema(tags=['Routes & Cities'])
-class About(APIView):
-    def get(self, request):
-        buschanges = Buschange.objects.all()
-        buschanges_count = buschanges.count()
-        
-        context = {
-            'buschanges_count': buschanges_count
-        }
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/about.html', context)
-        return Response(context, status=status.HTTP_200_OK)
-"""
+
 
 
 
@@ -143,31 +125,7 @@ class HomeViews(APIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
 
-"""
-@extend_schema(tags=['Routes & Cities'])
-class About(APIView):
-    def get(self, request):
-        @extend_schema(
-        responses={200: inline_serializer(
-            name='AboutResponse',
-            fields={'message': serializers.CharField()}
-        )})
-        #buschanges = Buschange.objects.all()
-        buschanges_count = buschanges.count()
-        des = City.objects.all()
 
-        context = {
-            'des': des,
-            'buschanges_count': buschanges_count if buschanges_count > 0 else None
-        }
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/about.html', context)
-        response_data = {
-            'des': [city.depcity for city in des],
-            'buschanges_count': buschanges_count
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
-"""
 
 
 from rest_framework.views import APIView
@@ -377,35 +335,7 @@ class CommentsView(generics.GenericAPIView):
 
 
 
-"""
-from .serializers import CommentteSerializer
-class CommentsView(generics.GenericAPIView):
-    queryset = Feedback.objects.all()
-    serializer_class = CommentteSerializer
 
-    def get(self, request, *args, **kwargs):
-        buschanges_count = Buschange.objects.count()
-        return render(request, 'users/comment.html', {'buschanges_count': buschanges_count})
-
-    def post(self, request, *args, **kwargs):
-        buschanges_count = Buschange.objects.count()
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            # ... (validation logic) ...
-            serializer.save()
-
-            # THIS LINE BELOW IS WHAT YOUR JAVASCRIPT RECEIVES
-            return Response(
-                {'success': 'Comment submitted successfully.', 'buschanges_count': buschanges_count},
-                status=status.HTTP_201_CREATED
-            )
-
-        # THIS LINE BELOW IS WHAT YOUR JAVASCRIPT RECEIVES ON ERROR
-        return Response(
-            {'error': serializer.errors, 'buschanges_count': buschanges_count},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-"""
 
 
 
@@ -455,82 +385,7 @@ class BusInsertViews(APIView):
 
 
 
-"""
-from django.shortcuts import render
-from rest_framework import generics, status
-from django.utils import timezone
-from datetime import timedelta
-from .models import Route, City, Bus
-from .serializers import RouteSerializer
-from drf_spectacular.utils import extend_schema
 
-@extend_schema(tags=['Routes & Cities'])
-class RoutesInsertView(generics.GenericAPIView):
-    queryset = Route.objects.all()
-    serializer_class = RouteSerializer
-
-    def get_common_context(self):
-        return {
-            'dep': City.objects.all(),
-            'des': City.objects.all(),
-            'bus': Bus.objects.all(),
-        }
-
-    def get(self, request, *args, **kwargs):
-        # Normal page load
-        return render(request, 'users/route.html', self.get_common_context())
-
-    def post(self, request, *args, **kwargs):
-        context = self.get_common_context()
-        serializer = self.get_serializer(data=request.data)
-
-        if serializer.is_valid():
-            data = serializer.validated_data
-            depcity = data['depcity'].strip()
-            descity = data['descity'].strip()
-            date = data['date']
-            plate_no = data['plate_no']
-            side_no = data['side_no']
-            price = data['price']
-            kilometer = data['kilometer']
-
-            # --- Validation Logic ---
-            if depcity == descity:
-                context['error'] = 'Departure and Destination cannot be the same!'
-                return render(request, 'users/route.html', context)
-
-            if Route.objects.filter(depcity=depcity, descity=descity, plate_no=plate_no, side_no=side_no, date=date).exists():
-                context['error'] = 'Route already exists.'
-                return render(request, 'users/route.html', context)
-
-            if Route.objects.filter(side_no=side_no, date=date, plate_no=plate_no).exists():
-                context['error'] = 'This bus is already reserved for another route for this date.'
-                return render(request, 'users/route.html', context)
-
-            # --- Save the main route ---
-            serializer.save()
-
-            # --- Handle Return Trip for Addis Ababa ---
-            # Using replace(" ", "") to catch "Addis Ababa" or "AddisAbaba"
-            if depcity.lower().replace(" ", "") == "addisababa":
-                next_date = date + timedelta(days=1)
-                Route.objects.create(
-                    depcity=descity,
-                    descity=depcity,
-                    kilometer=kilometer,
-                    plate_no=plate_no,
-                    side_no=side_no,
-                    price=price,
-                    date=next_date
-                )
-
-            context['success'] = 'Route registered successfully.'
-            return render(request, 'users/route.html', context)
-
-        # --- Handle Serializer Validation Errors ---
-        context['error'] = serializer.errors
-        return render(request, 'users/route.html', context)
-"""
 
 
 
@@ -622,323 +477,22 @@ class RoutesInsertView(generics.GenericAPIView):
 
 
 
-"""
-from django.shortcuts import render
-from rest_framework import generics, status
-from django.utils import timezone
-from datetime import timedelta
-from .models import Route, City, Bus
-from .serializers import RouteSerializer
-from drf_spectacular.utils import extend_schema
-
-@extend_schema(tags=['Routes & Cities'])
-class RoutesInsertView(generics.GenericAPIView):
-    queryset = Route.objects.all()
-    serializer_class = RouteSerializer
-
-    def get_route_context(self, extra_context=None):
-        
-        context = {
-            'dep': City.objects.all(),
-            'des': City.objects.all(),
-            'bus': Bus.objects.all(),
-        }
-        if extra_context:
-            context.update(extra_context)
-        return context
-
-    def get(self, request, *args, **kwargs):
-        # Initial page load
-        return render(request, 'users/route.html', self.get_route_context())
-
-    def post(self, request, *args, **kwargs):
-        # 1. Prepare context and validate data
-        context = self.get_route_context()
-        serializer = self.get_serializer(data=request.data)
-
-        if serializer.is_valid():
-            data = serializer.validated_data
-            depcity = data.get('depcity')
-            descity = data.get('descity')
-            date = data.get('date')
-            plate_no = data.get('plate_no')
-            side_no = data.get('side_no')
-            price = data.get('price')
-            kilometer = data.get('kilometer')
-
-            # 2. Manual Validation Logic
-            # Check if source and destination are same
-            if str(depcity).strip() == str(descity).strip():
-                context['error'] = 'Departure and Destination cannot be the same!'
-                return render(request, 'users/route.html', context)
-
-            # Check if the specific route already exists
-            if Route.objects.filter(depcity=depcity, descity=descity, plate_no=plate_no, side_no=side_no, date=date).exists():
-                context['error'] = 'Route already exists.'
-                return render(request, 'users/route.html', context)
-
-            # Check if bus is already reserved
-            if Route.objects.filter(side_no=side_no, date=date, plate_no=plate_no).exists():
-                context['error'] = 'This bus is already reserved for another route for this date.'
-                return render(request, 'users/route.html', context)
-
-            # 3. Save the Primary Route
-            serializer.save()
-
-            # 4. Special Logic: Automatic Return Trip for Addisababa
-            # Note: Using exact string match as requested
-            if str(depcity).strip() == "Addisababa":
-                try:
-                    # Calculate tomorrow's date
-                    next_date = date + timedelta(days=1)
-
-                    # Create the reverse route
-                    Route.objects.create(
-                        depcity=descity, # Destination becomes Departure
-                        descity=depcity, # Departure becomes Destination
-                        kilometer=kilometer,
-                        plate_no=plate_no,
-                        side_no=side_no,
-                        price=price,
-                        date=next_date
-                    )
-                except Exception as e:
-                    # If this fails, we notify the user but the first route is already saved
-                    context['error'] = f'Main route saved, but return trip failed: {str(e)}'
-                    return render(request, 'users/route.html', context)
-
-            # 5. Final Success Response
-            context['success'] = 'Route registered successfully.'
-            return render(request, 'users/route.html', context)
-
-        # 6. Handle Serializer Validation Errors (e.g., missing fields)
-        context['error'] = serializer.errors
-        return render(request, 'users/route.html', context)
-
-"""
-
-
-
-"""
-from django.shortcuts import render
-from rest_framework import generics, status
-from django.utils import timezone
-from datetime import timedelta
-from .models import Route, City, Bus
-from .serializers import RouteSerializer
-from drf_spectacular.utils import extend_schema
-@extend_schema(tags=['Routes & Cities'])
-class RoutesInsertView(generics.GenericAPIView):
-    queryset = Route.objects.all()
-    serializer_class = RouteSerializer
-
-    def get_route_context(self, extra_context=None):
-        context = {
-            'dep': City.objects.all(),
-            'des': City.objects.all(),
-            'bus': Bus.objects.all(),
-        }
-        if extra_context:
-            context.update(extra_context)
-        return context
-
-    def get(self, request, *args, **kwargs):
-        return render(request, 'users/route.html', self.get_route_context())
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        
-        if serializer.is_valid():
-            data = serializer.validated_data
-            depcity = data['depcity'].strip()
-            descity = data['descity'].strip()
-            date = data['date']
-            plate_no = data['plate_no']
-            side_no = data['side_no']
-            price = data['price']
-            kilometer = data['kilometer']
-
-            # 1. Validation Logic
-            if depcity == descity:
-                return render(request, 'users/route.html', self.get_route_context({
-                    'error': 'Departure and Destination cannot be the same!'
-                }))
-
-            if Route.objects.filter(depcity=depcity, descity=descity, plate_no=plate_no, side_no=side_no, date=date).exists():
-                return render(request, 'users/route.html', self.get_route_context({
-                    'error': 'Route already exists.'
-                }))
-
-            if Route.objects.filter(side_no=side_no, date=date, plate_no=plate_no).exists():
-                return render(request, 'users/route.html', self.get_route_context({
-                    'error': 'This bus is already reserved for another route for this date.'
-                }))
-
-            # 2. Save
-            serializer.save()
-
-            # 3. Handle Addis Ababa logic
-            if depcity == "Addisababa":
-                # Ensure date is a date object before adding timedelta
-                next_date = date + timedelta(days=1)
-                Route.objects.create(
-                    depcity=descity,
-                    descity=depcity,
-                    kilometer=kilometer,
-                    plate_no=plate_no,
-                    side_no=side_no,
-                    price=price,
-                    date=next_date
-                )
-
-            return render(request, 'users/route.html', self.get_route_context({
-                'success': 'Route registered successfully.'
-            }))
-
-        # 4. Handle Serializer Errors (fixed typo: errors, not error)
-        return render(request, 'users/route.html', self.get_route_context({
-            'error': serializer.errors
-        }))
-
-"""
 
 
 
 
 
 
-"""
-from django.shortcuts import render
-from rest_framework import generics, status
-from rest_framework.response import Response
-from django.utils import timezone
-from datetime import timedelta
-from .models import Route, City, Bus
-from .serializers import RouteSerializer
-@extend_schema(tags=['Routes & Cities'])
-class RoutesInsertView(generics.GenericAPIView):
-    queryset = Route.objects.all()
-    serializer_class = RouteSerializer
-    def get(self, request, *args, **kwargs):
-        cities = City.objects.all()
-        buses = Bus.objects.all()
-
-        des = City.objects.all()
-        dep = City.objects.all()
-        bus = Bus.objects.all()
-
-        return render(request, 'users/route.html', {'dep': dep, 'des': des, 'bus': bus})
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            depcity = serializer.validated_data['depcity'].strip()
-            descity = serializer.validated_data['descity'].strip()
-            date = serializer.validated_data['date']
-            plate_no = serializer.validated_data['plate_no']
-            side_no = serializer.validated_data['side_no']
-            price = serializer.validated_data['price']
-            kilometer = serializer.validated_data['kilometer']
-            if depcity == descity:
-                return render(request, 'users/route.html', {'dep': dep, 'des': des, 'bus': bus, 'error': 'Departure and Destination cannot be the same!'})
-                #return Response({'error': 'Departure and Destination cannot be the same!'}, status=status.HTTP_400_BAD_REQUEST)
-            if Route.objects.filter(depcity=depcity, descity=descity, plate_no=plate_no, side_no=side_no, date=date).exists():
-                return render(request, 'users/route.html', {'dep': dep, 'des': des, 'bus': bus, 'error': 'Route already exists.'})
-                #return Response({'error': 'Route already exists.'}, status=status.HTTP_400_BAD_REQUEST)
-            if Route.objects.filter(side_no=side_no, date=date, plate_no=plate_no).exists():
-                return render(request, 'users/route.html', {'dep': dep, 'des': des, 'bus': bus, 'error': 'This bus is already reserved for another route for this date.'})
-                #return Response({'error': 'This bus is already reserved for another route for this date.'}, status=status.HTTP_400_BAD_REQUEST)
-            serializer.save()
-            if depcity.lower() == "Addisababa":
-                next_date = timezone.datetime.strptime(str(date), '%Y-%m-%d') + timedelta(days=1)
-                next_date_str = next_date.strftime('%Y-%m-%d')
-                Route.objects.create(
-                    depcity=descity,
-                    descity=depcity,
-                    kilometer=kilometer,
-                    plate_no=plate_no,
-                    side_no=side_no,
-                    price=price,
-                    date=next_date_str
-                )
-            return render(request, 'users/route.html', {'dep': dep, 'des': des, 'bus': bus, 'success': 'route registered successfully.'})
-            #return Response({'success': 'route registered successfully.'}, status=status.HTTP_201_CREATED)
-        return Response({'error': serializer.error}, status=status.HTTP_400_BAD_REQUEST)
-"""
 
 
 
-"""
-from django.shortcuts import render
-from rest_framework import generics, status
-from rest_framework.response import Response
-from django.utils import timezone
-from datetime import timedelta
-from .models import Route, City, Bus
-from .serializers import RouteSerializer
-from drf_spectacular.utils import extend_schema
-
-@extend_schema(tags=['Routes & Cities'])
-class RoutesInsertView(generics.GenericAPIView):
-    queryset = Route.objects.all()
-    serializer_class = RouteSerializer
-
-    def get_context_data(self):
-        return {
-            'dep': City.objects.all(),
-            'des': City.objects.all(),
-            'bus': Bus.objects.all(),
-        }
-
-    def get(self, request, *args, **kwargs):
-        return render(request, 'users/route.html', self.get_context_data())
 
 
-    def post(self, request, *args, **kwargs):
-        context = self.get_context_data()
-        serializer = self.get_serializer(data=request.data)
 
-        if serializer.is_valid():
-            depcity = serializer.validated_data['depcity'].strip()
-            descity = serializer.validated_data['descity'].strip()
-            date = serializer.validated_data['date']
-            plate_no = serializer.validated_data['plate_no']
-            side_no = serializer.validated_data['side_no']
-            price = serializer.validated_data['price']
-            kilometer = serializer.validated_data['kilometer']
 
-            # 1. Validation Logic
-            if depcity == descity:
-                context['error'] = 'Departure and Destination cannot be the same!'
-                return render(request, 'users/route.html', context)
 
-            if Route.objects.filter(depcity=depcity, descity=descity, plate_no=plate_no, side_no=side_no, date=date).exists():
-                context['error'] = 'Route already exists.'
-                return render(request, 'users/route.html', context)
 
-            if Route.objects.filter(side_no=side_no, date=date, plate_no=plate_no).exists():
-                context['error'] = 'This bus is already reserved for another route for this date.'
-                return render(request, 'users/route.html', context)
 
-            # 2. Save and logic for Addis Ababa
-            serializer.save()
-
-            if depcity.lower().replace(" ", "") == "addisababa":
-                next_date = date + timedelta(days=1)
-                Route.objects.create(
-                    depcity=descity,
-                    descity=depcity,
-                    kilometer=kilometer,
-                    plate_no=plate_no,
-                    side_no=side_no,
-                    price=price,
-                    date=next_date
-                )
-            context['success'] = 'Route registered successfully.'
-            return render(request, 'users/route.html', context)
-        # 3. Handle Serializer Errors
-        context['error'] = serializer.errors
-        return render(request, 'users/route.html', context)
-"""
 
 
 
@@ -967,52 +521,7 @@ class CityInsertView(generics.GenericAPIView):
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.views import View
-from .models import Ticket, Buschange, City  # Ensure you import your models
-def get_ticket(request):
-    return render(request, 'users/getticket.html')
-@extend_schema(tags=['Booking & Tickets'])
-class TicketGetAPI(View):
-    def get(self, request):
-        des = City.objects.all().values()
-        buschanges_count = Buschange.objects.count()
-        response_data = {
-            'cities': list(des),
-            'buschanges_count': buschanges_count,
-        }
-        return JsonResponse(response_data)
-    def post(self, request):
-        depcity = request.POST.get('depcity')
-        descity = request.POST.get('descity')
-        date = request.POST.get('date')
-        firstname = request.POST.get('firstname')
-        lastname = request.POST.get('lastname')
-        print("Received data:", depcity, descity, date, firstname, lastname)  # Log all inputs for debugging
-        if not all([depcity, descity, date, firstname, lastname]):
-            return JsonResponse({'error': "All fields are required!"}, status=400)
 
-        ticket = Ticket.objects.filter(
-        depcity=depcity,
-        descity=descity,
-        date=date,
-        firstname=firstname,
-        lastname=lastname
-    ).first()
-        if ticket:
-            qr_code_path = ticket.generate_qr_code()  # Ensure this method exists
-            return JsonResponse({
-            'success': "Your Ticket is booked.",
-            'ticket': ticket.id,
-            'qr_code_path': qr_code_path
-        })
-        return JsonResponse({'error': "No ticket information found for the entered details!"}, status=404)
-"""
 
 
 from rest_framework.views import APIView
@@ -1141,20 +650,7 @@ class Rout(APIView):
         return Response(serializer.data)
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from .models import Bus  # Assuming you have a Bus model
-from .serializers import BusSerializer  # Assuming you have a BusSerializer
-from rest_framework.views import APIView
-from rest_framework.response import Response
-@extend_schema(tags=['Bus & Driver Management'])
-class BusesView(APIView):
-    def get(self, request):
-        buses = Bus.objects.all()  # Fetch all Bus instances
-        serializer = BusSerializer(buses, many=True)  # Serialize the data
-        return Response(serializer.data)  # Return JSON response
-"""
+
 
 
 from rest_framework.views import APIView
@@ -1368,595 +864,31 @@ class Changepassenger(APIView):
         return Response(TSerializer(ticket).data, status=status_code)
 
 
-"""
-import qrcode
-import base64
-from io import BytesIO
-from rest_framework.views import APIView
-from django.shortcuts import render
-from .models import Ticket, City, Bus
 
-class GetTicketViews(APIView):
-    def get(self, request):
-        des = City.objects.all()
-        return render(request, 'users/getticket.html', {'des': des})
 
-    def post(self, request):
-        # 1. Capture data from the form
-        firstname = request.data.get('firstname', '').strip()
-        lastname = request.data.get('lastname', '').strip()
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
 
-        # Always fetch cities for the dropdown in case of return
-        des = City.objects.all()
 
-        # 2. Precise Filter
-        # Note: We use __iexact to avoid issues with Capitalization (e.g., 'john' vs 'John')
-        ticket = Ticket.objects.filter(
-            firstname__iexact=firstname,
-            lastname__iexact=lastname,
-            depcity=depcity,
-            descity=descity,
-            date=date
-        ).first()
 
-        # 3. Handle the Result
-        if ticket:
-            # Fetch Bus info to match your Booking View logic
-            bus_info = Bus.objects.filter(plate_no=ticket.plate_no).first()
-            
-            # Generate QR locally to avoid Model errors
-            qr_data = f"PNR:{ticket.pnr}|Name:{ticket.firstname} {ticket.lastname}|Seat:{ticket.no_seat}"
-            qr = qrcode.QRCode(version=1, box_size=5, border=2)
-            qr.add_data(qr_data)
-            qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white")
-            buffer = BytesIO()
-            img.save(buffer, format='PNG')
-            qr_base64 = 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode()
 
-            # Pass variables to 'users/tickets.html'
-            context = {
-                'ticket': ticket,
-                'level': bus_info.level if bus_info else "Standard",
-                'name': bus_info.name if bus_info else "Generic Bus",
-                'qr_code_path': qr_base64
-            }
-            return render(request, 'users/tickets.html', context)
 
-        else:
-            # If no ticket is found, we MUST show an error message
-            return render(request, 'users/getticket.html', {
-                'error': f'No ticket found for {firstname} {lastname} on {date}.',
-                'des': des
-            })
 
-"""
 
 
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from .models import Ticket, City, Bus
-from .serializers import TSerializer
-class GetTicketViews(APIView):
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/getticket.html', {'des': des})
-        return Response({'des': [city.depcity for city in des]}, status=status.HTTP_200_OK)
 
-    def post(self, request):
-        firstname = request.data.get('firstname')
-        lastname = request.data.get('lastname')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
 
-        # Validate input
-        if depcity == descity:
-            error_message = 'Departure and Destination cannot be the same!'
-        elif firstname == lastname:
-            error_message = 'Firstname and Lastname cannot be the same!'
-        else:
-            error_message = None
 
-        if error_message:
-            des = City.objects.all()
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {
-                    'error': error_message,
-                    'des': des
-                })
-            else:
-                return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Retrieve the ticket
-        ticket = Ticket.objects.filter(
-            firstname=firstname,
-            lastname=lastname,
-            depcity=depcity,
-            descity=descity,
-            date=date
-        ).first()  # Get the first ticket instance or None
 
-        if ticket:
-            plate_no = ticket.plate_no
-            level = Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else None
-            #qr_code_path = ticket.generate_qr_code()  # Assuming generate_qr_code is a method of Ticket
 
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/tickets.html', {
-                    'ticket': ticket,
-                    'level': level,
-                    #'qr_code_path': qr_code_path
-                })
-            else:
-                serialized_ticket = TSerializer(ticket)
-                return Response(serialized_ticket.data, status=status.HTTP_200_OK)
-        else:
-            # No ticket found
-            des = City.objects.all()
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {
-                    'error': 'No booked tickets for this travel',
-                    'des': des
-                })
-            else:
-                return Response({'error': 'No booked tickets found for this travel'}, status=status.HTTP_404_NOT_FOUND)
 
-"""
 
 
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from .models import Ticket, City, Bus
-from .serializers import TSerializer
-class GetTicketViews(APIView):
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/getticket.html', {'des': des})
-        return Response({'des': [city.depcity for city in des]}, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        firstname = request.data.get('firstname')
-        lastname = request.data.get('lastname')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-
-        # 1. Validation Logic
-        error_message = None
-        if depcity == descity:
-            error_message = 'Departure and Destination cannot be the same!'
-        elif firstname == lastname:
-            error_message = 'Firstname and Lastname cannot be the same!'
-
-        # If there's a validation error, return early
-        if error_message:
-            des = City.objects.all()
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {
-                    'error': error_message,
-                    'des': des
-                })
-            return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 2. Retrieve the ticket
-        ticket = Ticket.objects.filter(
-            firstname=firstname,
-            lastname=lastname,
-            depcity=depcity,
-            descity=descity,
-            date=date
-        ).first()
-
-        # 3. Handle Ticket Existence
-        if ticket:
-            plate_no = ticket.plate_no
-            level = Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else None
-            
-            # Use the actual method if it's uncommented in your model
-            #qr_code_path = ticket.generate_qr_code() if hasattr(ticket, 'generate_qr_code') else None
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/tickets.html', {
-                    'ticket': ticket,
-                    'level': level,
-                    #'qr_code_path': qr_code_path
-                })
-            
-            serialized_ticket = TSerializer(ticket)
-            return Response(serialized_ticket.data, status=status.HTTP_200_OK)
-        
-        else:
-            # This is the part you wanted to ensure works: No ticket found
-            des = City.objects.all()
-            error_text = 'No booked tickets found for this travel'
-            
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {
-                    'error': error_text,
-                    'des': des
-                })
-            
-            return Response({'error': error_text}, status=status.HTTP_404_NOT_FOUND)
-"""
-
-
-
-
-"""
-from rest_framework.views import APIView
-
-from rest_framework.response import Response
-
-from rest_framework import status
-
-from django.shortcuts import render
-
-from .models import Ticket, City, Bus
-
-from .serializers import TSerializer
-
-class GetTicketViews(APIView):
-
-    def get(self, request):
-
-        des = City.objects.all()
-
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-
-            return render(request, 'users/getticket.html', {'des': des})
-
-        return Response({'des': [city.depcity for city in des]}, status=status.HTTP_200_OK)
-
-def post(self, request):
-
-        firstname = request.data.get('firstname')
-
-        lastname = request.data.get('lastname')
-
-        depcity = request.data.get('depcity')
-
-        descity = request.data.get('descity')
-
-        date = request.data.get('date')
-
-
-
-        # Validate input
-
-        if depcity == descity:
-
-            error_message = 'Departure and Destination cannot be the same!'
-
-        elif firstname == lastname:
-
-            error_message = 'Firstname and Lastname cannot be the same!'
-
-        else:
-
-            error_message = None
-
-
-
-        if error_message:
-
-            des = City.objects.all()
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-
-                return render(request, 'users/getticket.html', {
-
-                    'error': error_message,
-
-                    'des': des
-
-                })
-
-            else:
-
-                return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-# Retrieve the ticket
-
-        ticket = Ticket.objects.filter(
-
-            firstname=firstname,
-
-            lastname=lastname,
-
-            depcity=depcity,
-
-            descity=descity,
-
-            date=date
-
-        ).first()  # Get the first ticket instance or None
-
-
-
-        if ticket:
-
-            plate_no = ticket.plate_no
-
-            level = Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else None
-
-            qr_code_path = ticket.generate_qr_code()  # Assuming generate_qr_code is a method of Ticket
-
-
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-
-                return render(request, 'users/tickets.html', {
-
-                    'ticket': ticket,
-
-                    'level': level,
-
-                    'qr_code_path': qr_code_path
-
-                })
-
-            else:
-
-                serialized_ticket = TSerializer(ticket)
-
-                return Response(serialized_ticket.data, status=status.HTTP_200_OK)
-
-        else:
-
-            # No ticket found
-
-            des = City.objects.all()
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-
-                return render(request, 'users/getticket.html', {
-
-                    'error': 'No booked tickets for this travel',
-
-                    'des': des
-
-                })
-
-            else:
-                return Response({'error': 'No booked tickets found for this travel'}, status=status.HTTP_404_NOT_FOUND)
-
-"""
-
-
-
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from .models import Ticket, City, Bus
-from .serializers import TSerializer
-class GetTicketViews(APIView):
-    def get(self, request):
-        des = City.objects.all()
-        # Check if request is from a browser
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/getticket.html', {'des': des})
-        return Response({'des': [city.depcity for city in des]}, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        # Extract data from request.data (works for both Form and JSON)
-        firstname = request.data.get('firstname')
-        lastname = request.data.get('lastname')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-
-        # 1. Validation Logic
-        error_message = None
-        if depcity == descity:
-            error_message = 'Departure and Destination cannot be the same!'
-        elif firstname == lastname:
-            error_message = 'Firstname and Lastname cannot be the same!'
-
-        if error_message:
-            des = City.objects.all()
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {'error': error_message, 'des': des})
-            return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 2. Retrieve the ticket
-        ticket = Ticket.objects.filter(
-            firstname=firstname,
-            lastname=lastname,
-            depcity=depcity,
-            descity=descity,
-            date=date
-        ).first()
-
-        # 3. Handle Results
-        if ticket:
-            # Get bus level details
-            plate_no = ticket.plate_no
-            level = Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else "N/A"
-
-            # Generate QR Code (ensure this method exists in your Ticket model)
-            qr_code_path = ticket.generate_qr_code()
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/tickets.html', {
-                    'ticket': ticket,
-                    'level': level,
-                    'qr_code_path': qr_code_path
-                })
-            else:
-                serialized_ticket = TSerializer(ticket)
-                return Response(serialized_ticket.data, status=status.HTTP_200_OK)
-        else:
-            # No ticket found logic
-            des = City.objects.all()
-            error_msg = 'No booked tickets found for this travel'
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {'error': error_msg, 'des': des})
-            return Response({'error': error_msg}, status=status.HTTP_404_NOT_FOUND)
-
-"""
-
-
-"""
-from rest_framework.views import APIView
-
-from rest_framework.response import Response
-
-from rest_framework import status
-
-from django.shortcuts import render
-
-from .models import Ticket, City, Bus
-
-from .serializers import TSerializer
-
-class GetTicketViews(APIView):
-
-    def get(self, request):
-
-        des = City.objects.all()
-
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-
-            return render(request, 'users/getticket.html', {'des': des})
-
-        return Response({'des': [city.depcity for city in des]}, status=status.HTTP_200_OK)
-
-
-
-    def post(self, request):
-
-        firstname = request.data.get('firstname')
-
-        lastname = request.data.get('lastname')
-
-        depcity = request.data.get('depcity')
-
-        descity = request.data.get('descity')
-
-        date = request.data.get('date')
-
-
-
-        # Validate input
-
-        if depcity == descity:
-
-            error_message = 'Departure and Destination cannot be the same!'
-
-        elif firstname == lastname:
-
-            error_message = 'Firstname and Lastname cannot be the same!'
-
-        else:
-
-            error_message = None
-
-            if error_message:
-
-            des = City.objects.all()
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-
-                return render(request, 'users/getticket.html', {
-
-                    'error': error_message,
-
-                    'des': des
-
-                })
-
-            else:
-
-                return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-        # Retrieve the ticket
-
-        ticket = Ticket.objects.filter(
-
-            firstname=firstname,
-
-            lastname=lastname,
-
-            depcity=depcity,
-
-            descity=descity,
-
-            date=date
-
-        ).first()  # Get the first ticket instance or None
-
-
-
-        if ticket:
-
-            plate_no = ticket.plate_no
-
-            level = Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else None
-
-            qr_code_path = ticket.generate_qr_code()  # Assuming generate_qr_code is a method of Ticket
-
-
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-
-                return render(request, 'users/tickets.html', {
-
-                    'ticket': ticket,
-
-                    'level': level,
-
-                    'qr_code_path': qr_code_path
-
-                })
-
-            else:
-
-                serialized_ticket = TSerializer(ticket)
-
-                return Response(serialized_ticket.data, status=status.HTTP_200_OK)
-
-        else:
-
-            # No ticket found
-
-            des = City.objects.all()
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-
-                return render(request, 'users/getticket.html', {
-
-                    'error': 'No booked tickets for this travel',
-
-                    'des': des
-
-                })
-
-            else:
-                return Response({'error': 'No booked tickets found for this travel'}, status=status.HTTP_404_NOT_FOUND)
-
-"""
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -2037,492 +969,44 @@ class GetTicketViews(APIView):
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from .models import Ticket, City, Bus
-from .serializers import TSerializer
-class GetTicketViews(APIView):
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/getticket.html', {'des': des})
-        return Response({'des': [city.depcity for city in des]}, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        firstname = request.data.get('firstname')
-        lastname = request.data.get('lastname')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-
-        # Validate input
-        if depcity == descity:
-            error_message = 'Departure and Destination cannot be the same!'
-        elif firstname == lastname:
-            error_message = 'Firstname and Lastname cannot be the same!'
-        else:
-            error_message = None
-
-        if error_message:
-            des = City.objects.all()
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {
-                    'error': error_message,
-                    'des': des
-                })
-            else:
-                return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Retrieve the ticket
-        ticket = Ticket.objects.filter(
-            firstname=firstname,
-            lastname=lastname,
-            depcity=depcity,
-            descity=descity,
-            date=date
-        ).first()  # Get the first ticket instance or None
-
-        if ticket:
-            plate_no = ticket.plate_no
-            level = Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else None
-            qr_code_path = ticket.generate_qr_code()  # Assuming generate_qr_code is a method of Ticket
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/tickets.html', {
-                    'ticket': ticket,
-                    'level': level,
-                    'qr_code_path': qr_code_path
-                })
-            else:
-                serialized_ticket = TSerializer(ticket)
-                return Response(serialized_ticket.data, status=status.HTTP_200_OK)
-        else:
-            # No ticket found
-            des = City.objects.all()
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {
-                    'error': 'No booked tickets for this travel',
-                    'des': des
-                })
-            else:
-                return Response({'error': 'No booked tickets found for this travel'}, status=status.HTTP_404_NOT_FOUND)
-
-"""
-
-
-
-
-
-
-"""
-import qrcode
-import base64
-from io import BytesIO
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from .models import Ticket, City, Bus
-from .serializers import TSerializer
-class GetTicketViews(APIView):
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/getticket.html', {'des': des})
-        return Response({'des': [city.depcity for city in des]}, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        # 1. Get data safely from the request
-        firstname = request.data.get('firstname')
-        lastname = request.data.get('lastname')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-
-        # 2. Validation
-        if depcity == descity:
-            des = City.objects.all()
-            return render(request, 'users/getticket.html', {'error': 'Departure and Destination match!', 'des': des})
-
-        # 3. Query the database
-        ticket = Ticket.objects.filter(
-            firstname=firstname,
-            lastname=lastname,
-            depcity=depcity,
-            descity=descity,
-            date=date
-        ).first()
-
-        if ticket:
-            # --- START: GENERATE QR CODE LOCALLY (Avoiding the Model Error) ---
-            qr_data = (
-                f"PNR: {ticket.pnr}\n"
-                f"Name: {ticket.firstname} {ticket.lastname}\n"
-                f"Route: {ticket.depcity} to {ticket.descity}\n"
-                f"Date: {ticket.date}\n"
-                f"Seat: {ticket.no_seat}\n"
-                f"Price: {ticket.price} ETB"
-            )
-            
-            qr = qrcode.QRCode(version=1, box_size=10, border=4)
-            qr.add_data(qr_data)
-            qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white")
-            
-            buffer = BytesIO()
-            img.save(buffer, format='PNG')
-            # This generates the image string without touching the model
-            qr_base64 = 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode()
-            # --- END: QR GENERATION ---
-
-            # 4. Get Bus Level
-            bus = Bus.objects.filter(plate_no=ticket.plate_no).first()
-            level = bus.level if bus else "Standard"
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/tickets.html', {
-                    'ticket': ticket,
-                    'level': level,
-                    'qr_code_path': qr_base64 # Passing the locally generated QR
-                })
-            else:
-                return Response(TSerializer(ticket).data, status=status.HTTP_200_OK)
-        
-        else:
-            # No ticket found
-            des = City.objects.all()
-            return render(request, 'users/getticket.html', {
-                'error': 'No booked tickets found for these details.',
-                'des': des
-            })
-"""
-
-
-
-
-
-"""
-import qrcode
-import base64
-from io import BytesIO
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from .models import Ticket, City, Bus
-from .serializers import TicketSerializer
-
-class GetTicketViews(APIView):
-    # Match the tag used in your booking view
-    # @extend_schema(tags=['Booking & Tickets'])
-
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/getticket.html', {'des': des})
-        return Response({'cities': [city.depcity for city in des]})
-
-    def post(self, request):
-        # Use request.data for APIView compatibility (handles both Form and JSON)
-        firstname = request.data.get('firstname', '').strip()
-        lastname = request.data.get('lastname', '').strip()
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-
-        # Cities list for re-rendering form on error
-        des = City.objects.all()
-
-        try:
-            # 1. Search for the ticket
-            ticket = Ticket.objects.filter(
-                firstname__iexact=firstname,
-                lastname__iexact=lastname,
-                depcity=depcity,
-                descity=descity,
-                date=date
-            ).first()
-
-            if ticket:
-                # 2. Get Bus details (matching your booking view logic)
-                bus_info = Bus.objects.filter(plate_no=ticket.plate_no).first()
-                level = bus_info.level if bus_info else "Unknown"
-                bus_name = bus_info.name if bus_info else "Unknown"
-
-                # 3. Generate QR Code in the View (Safe/Model-Independent)
-                qr_data = (
-                    f"PNR: {ticket.pnr}\n"
-                    f"Passenger: {ticket.firstname} {ticket.lastname}\n"
-                    f"Route: {ticket.depcity} to {ticket.descity}\n"
-                    f"Date: {ticket.date}\n"
-                    f"Seat: {ticket.no_seat}"
-                )
-
-                qr = qrcode.QRCode(version=1, box_size=5, border=2)
-                qr.add_data(qr_data)
-                qr.make(fit=True)
-                img = qr.make_image(fill_color="black", back_color="white")
-
-                buffer = BytesIO()
-                img.save(buffer, format='PNG')
-                qr_base64 = 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode()
-
-                # 4. Render the ticket page (myticket.html style)
-                if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                    return render(request, 'users/tickets.html', {
-                        'ticket': ticket,
-                        'level': level,
-                        'name': bus_name,
-                        'qr_code_path': qr_base64
-                    })
-
-                serializer = TicketSerializer(ticket)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-
-            # 5. Handle "No Ticket Found"
-            error_msg = 'No booked tickets found for these details.'
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {'error': error_msg, 'des': des})
-            return Response({'error': error_msg}, status=status.HTTP_404_NOT_FOUND)
-
-        except Exception as e:
-            # Prevent 500 error, return the exception message instead
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {'error': f'System Error: {str(e)}', 'des': des})
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-"""
-
-
-
-
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from drf_spectacular.utils import extend_schema
-from .models import Ticket, City, Bus
-from .serializers import TSerializer, TicketSearchSerializer
-
-class GetTicketViews(APIView):
-    
-    @extend_schema(
-        tags=['Booking & Tickets'],
-        summary="Search tickets via URL parameters",
-        parameters=[TicketSearchSerializer], # Displays fields in Swagger GET
-        responses={200: TSerializer(many=True)}
-    )
-    def get(self, request):
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            des = City.objects.all()
-            return render(request, 'users/getticket.html', {'des': des})
-        serializer = TicketSearchSerializer(data=request.query_params)
-        if serializer.is_valid():
-            tickets = Ticket.objects.filter(**serializer.validated_data)
-            output_serializer = TSerializer(tickets, many=True)
-            return Response(output_serializer.data, status=status.HTTP_200_OK)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @extend_schema(
-        tags=['Booking & Tickets'],
-        summary="Search tickets via JSON body",
-        request=TicketSearchSerializer, # Displays fields in Swagger POST body
-        responses={200: TSerializer}
-    )
-    def post(self, request):
-        is_html = 'text/html' in request.META.get('HTTP_ACCEPT', '')
-        serializer = TicketSearchSerializer(data=request.data)
-        if not serializer.is_valid():
-            error_message = list(serializer.errors.values())[0][0]
-            return self._handle_error(request, error_message, is_html)
-        data = serializer.validated_data
-        ticket = Ticket.objects.filter(
-            firstname=data['firstname'],
-            lastname=data['lastname'],
-            depcity=data['depcity'],
-            descity=data['descity'],
-            date=data['date']
-        ).first()
-
-        if ticket:
-            plate_no = ticket.plate_no
-            level = Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else None
-            qr_code_path = ticket.generate_qr_code()
-
-            if is_html:
-                return render(request, 'users/tickets.html', {
-                    'ticket': ticket,
-                    'level': level,
-                    'qr_code_path': qr_code_path
-                })
-            
-            return Response(TSerializer(ticket).data, status=status.HTTP_200_OK)
-
-        return self._handle_error(request, 'No booked tickets found for this travel', is_html, status_code=404)
-
-    def _handle_error(self, request, message, is_html, status_code=400):
-        if is_html:
-            des = City.objects.all()
-            return render(request, 'users/getticket.html', {'error': message, 'des': des})
-        return Response({'error': message}, status=status_code)
-"""
-
-
-
-
-
-
-
-
-
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from .models import Ticket, City, Bus
-from .serializers import TSerializer
-class GetTicketViews(APIView):
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/getticket.html', {'des': des})
-        return Response({'des': [city.depcity for city in des]}, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        firstname = request.data.get('firstname')
-        lastname = request.data.get('lastname')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-
-        # Validate input
-        if depcity == descity:
-            error_message = 'Departure and Destination cannot be the same!'
-        elif firstname == lastname:
-            error_message = 'Firstname and Lastname cannot be the same!'
-        else:
-            error_message = None
-        if error_message:
-            des = City.objects.all()
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {
-                    'error': error_message,
-                    'des': des
-                })
-            else:
-                return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Retrieve the ticket
-        ticket = Ticket.objects.filter(
-            firstname=firstname,
-            lastname=lastname,
-            depcity=depcity,
-            descity=descity,
-            date=date
-        ).first()  # Get the first ticket instance or None
-
-        if ticket:
-            plate_no = ticket.plate_no
-            level = Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else None
-            qr_code_path = ticket.generate_qr_code()  # Assuming generate_qr_code is a method of Ticket
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/tickets.html', {
-                    'ticket': ticket,
-                    'level': level,
-                    'qr_code_path': qr_code_path
-                })
-            else:
-                serialized_ticket = TSerializer(ticket)
-                return Response(serialized_ticket.data, status=status.HTTP_200_OK)
-        else:
-            # No ticket found
-            des = City.objects.all()
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {
-                    'error': 'No booked tickets for this travel',
-                    'des': des
-                })
-            else:
-                return Response({'error': 'No booked tickets found for this travel'}, status=status.HTTP_404_NOT_FOUND)
-
-
-"""
-
-
-
-
-
-
-
-
-"""
-class GetTicketViews(APIView):
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/getticket.html', {'des': des})
-        return Response({'des': [city.depcity for city in des]}, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        firstname = request.data.get('firstname')
-        lastname = request.data.get('lastname')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-
-        # Validate input
-        if depcity == descity:
-            error_message = 'Departure and Destination cannot be the same!'
-        elif firstname == lastname:
-            error_message = 'Firstname and Lastname cannot be the same!'
-        else:
-            error_message = None
-
-        if error_message:
-            des = City.objects.all()
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {'error': error_message, 'des': des})
-            return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Retrieve the ticket - FIXED LINE BELOW
-        ticket = Ticket.objects.filter(
-            firstname=firstname,
-            lastname=lastname,
-            depcity=depcity,
-            descity=descity,
-            date=date
-        ).first()
-
-        if ticket:
-            plate_no = ticket.plate_no
-            level = Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else None
-            qr_code_path = ticket.generate_qr_code() 
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/tickets.html', {
-                    'ticket': ticket,
-                    'level': level,
-                    'qr_code_path': qr_code_path
-                })
-            else:
-                serialized_ticket = TSerializer(ticket)
-                return Response(serialized_ticket.data, status=status.HTTP_200_OK)
-        else:
-            des = City.objects.all()
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/getticket.html', {
-                    'error': 'No booked tickets for this travel',
-                    'des': des
-                })
-            return Response({'error': 'No booked tickets found'}, status=status.HTTP_404_NOT_FOUND)
-"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2627,26 +1111,7 @@ class LoginView(APIView):
 
         return Response({'error': 'Invalid role specified'}, status=status.HTTP_400_BAD_REQUEST)
 
-    """
-    def handle_worker_login(self, username, password, buschanges_count, request):
-        try:
-            worker = Worker.objects.get(username=username)
-            if not check_password(password, worker.password):
-                raise Worker.DoesNotExist
-
-            request.session['worker_id'] = worker.id
-            request.session['username'] = worker.username
-            request.session['phone'] = worker.phone
-            request.session['fname'] = worker.fname
-            request.session['lname'] = worker.lname
-        
-
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/rooteee.html', {'username': worker.username, 'lname': worker.lname, 'fname': worker.fname, 'phone': worker.phone})
-            return Response({'username': worker.username}, status=status.HTTP_200_OK)
-        except Worker.DoesNotExist:
-            return self.handle_login_error(buschanges_count, request, 'Worker credentials not found')
-    """
+    
 
     def handle_worker_login(self, username, password, buschanges_count, request):
         try:
@@ -2766,7 +1231,7 @@ class Books(APIView):
         return None
 
     def get_daily_total(self, username):
-        """Helper function to calculate today's total for the worker"""
+        
         today = timezone.now().date()
         total = Ticket.objects.filter(
             username=username,
@@ -2883,416 +1348,16 @@ class Books(APIView):
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.renderers import TemplateHTMLRenderer, JSONRenderer
-from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
-from django.shortcuts import render
-from django.utils import timezone
-from datetime import datetime
-from .models import City, Route, Bus, Ticket, Buschange, Worker
-class Books(APIView):
-    # Fix 1: Add Renderers to prioritize HTML over JSON
-    renderer_classes = [TemplateHTMLRenderer, JSONRenderer]
-    # Fix 2: Disable Throttling so you don't get the "Too Many Requests" error
-    throttle_classes = []
-
-    def get_user_from_session(self, request):
-        user_id = request.session.get('worker_id')
-        if user_id:
-            try:
-                return Worker.objects.get(id=user_id)
-            except Worker.DoesNotExist:
-                return None
-        return None
-
-    def get(self, request):
-        buschanges_count = Buschange.objects.count()
-        worker = self.get_user_from_session(request)
-
-        if not worker:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND, template_name='users/book.html')
-
-        username = worker.username.strip()
-        city = worker.city
-
-        if city in ['Kality', 'Ayertena', 'Lamberet', 'Autobustera']:
-            city = 'Addisababa'
-
-        # Return the template explicitly
-        return render(request, 'users/book.html', {
-            'des': City.objects.all(),
-            'username': username,
-            'city': city,
-            'buschanges_count': buschanges_count
-        })
-
-    def post(self, request):
-        worker = self.get_user_from_session(request)
-        if not worker:
-             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND, template_name='users/book.html')
-
-        username = worker.username.strip()
-        city = worker.city
-
-        if city in ['Kality', 'Ayertena', 'Lamberet', 'Autobustera']:
-            city = 'Addisababa'
-
-        date = request.data.get('date')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-
-        try:
-            incoming_date = datetime.strptime(date, '%Y-%m-%d')
-            today = timezone.now().date()
-
-            if incoming_date.date() < today:
-                raise ValueError("Past date")
-        except (ValueError, TypeError):
-            error_message = "Invalid date or date is in the past."
-            return render(request, 'users/book.html', {
-                'des': City.objects.all(),
-                'city': city,
-                'username': username,
-                'buschanges_count': Buschange.objects.count(),
-                'error': error_message
-            })
-
-        # --- Route Search Logic ---
-        rout = Route.objects.filter(depcity=depcity, descity=descity, date=date)
-        buschanges_count = Buschange.objects.count()
-        routes = []
-        levels = None
-        remaining_seats = 0
-        error_message = "There is no Travel for this information!"
-
-        if rout.exists():
-            for route in rout:
-                buses = Bus.objects.filter(plate_no=route.plate_no)
-                levels = buses.first().level if buses.exists() else None
-                total_seats = sum(int(bus.no_seats) for bus in buses) if buses.exists() else 0
-
-                booked_tickets = Ticket.objects.filter(
-                    depcity=route.depcity, descity=route.descity,
-                    date=route.date, plate_no=route.plate_no
-                ).count()
-
-                remaining_seats = total_seats - booked_tickets
-
-                if remaining_seats > 0:
-                    routes.append({
-                        'route': route,
-                        'levels': levels,
-                        'remaining_seats': remaining_seats
-                    })
-
-        # If no routes found, stay on the booking page with error
-        if not routes:
-            return render(request, 'users/book.html', {
-                'des': City.objects.all(),
-                'username': username,
-                'buschanges_count': buschanges_count,
-                'error': error_message,
-                'city': city,
-            })
-
-        # Success: Go to roo.html
-        return render(request, 'users/roo.html', {
-            'routes': routes,
-            'levels': levels,
-            'username': username,
-            'buschanges_count': buschanges_count
-        })
-"""
 
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from django.utils import timezone
-from datetime import datetime
-from .models import City, Route, Bus, Ticket, Buschange, Worker # Added Worker to imports
-
-class Books(APIView):
-    des = City.objects.all()
-
-    def get_user_from_session(self, request):
-        user_id = request.session.get('worker_id')
-        print(f"Worker ID in session: {user_id}")
-        if user_id:
-            try:
-                worker = Worker.objects.get(id=user_id)
-                print(f"Worker retrieved: {worker.username}")
-                return worker
-            except Worker.DoesNotExist:
-                print("Worker not found.")
-                return None
-        print("No user ID found in session.")
-        return None
-
-    def get(self, request):
-        buschanges_count = Buschange.objects.count()
-        worker = self.get_user_from_session(request)
-        
-        if not worker:
-            print("No worker session found.")
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        username = worker.username.strip()
-        city = worker.city
-        
-        if city in ['Kality', 'Ayertena', 'Lamberet', 'Autobustera']:
-            city = 'Addisababa'
-
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/book.html', {
-                'des': City.objects.all(), 
-                'username': username, 
-                'city': city,
-                'buschanges_count': buschanges_count
-            })
-            
-        return Response({
-            'des': [c.name for c in self.des], 
-            'buschanges_count': buschanges_count
-        }, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        worker = self.get_user_from_session(request)
-        if not worker:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-            
-        username = worker.username.strip()
-        city = worker.city
-        
-        if city in ['Kality', 'Ayertena', 'Lamberet', 'Autobustera']:
-            city = 'Addisababa'
-
-        date = request.data.get('date')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-
-        try:
-            incoming_date = datetime.strptime(date, '%Y-%m-%d')
-        except (ValueError, TypeError):
-            error_message = "Invalid date format. Please use YYYY-MM-DD."
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/book.html', {
-                    'des': City.objects.all(), 
-                    'city': city,
-                    'username': username,
-                    'buschanges_count': Buschange.objects.count(),
-                    'error': error_message
-                })
-            return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-        today = timezone.now().date()
-        if incoming_date.date() < today:
-            error_message = "Error: Incorrect date inserted."
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/book.html', {
-                    'des': City.objects.all(),
-                    'username': username,
-                    'buschanges_count': Buschange.objects.count(),
-                    'error': error_message,
-                    'city': city
-                })
-            return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-        rout = Route.objects.filter(depcity=depcity, descity=descity, date=date)
-        buschanges_count = Buschange.objects.count()
-        routes = []
-        levels = None
-        remaining_seats = 0
-        error_message = "There is no Travel for this information!"
-
-        if rout.exists():
-            for route in rout:
-                buses = Bus.objects.filter(plate_no=route.plate_no)
-                levels = buses.first().level if buses.exists() else None
-                total_seats = sum(int(bus.no_seats) for bus in buses) if buses.exists() else 0
-                
-                booked_tickets = Ticket.objects.filter(
-                    depcity=route.depcity,
-                    descity=route.descity,
-                    date=route.date,
-                    plate_no=route.plate_no
-                ).count()
-                
-                remaining_seats = total_seats - booked_tickets
-                
-                if remaining_seats < 0:
-                    routes = []
-                    break
-
-                if remaining_seats > 0:
-                    routes.append({
-                        'route': route,
-                        'levels': levels,
-                        'remaining_seats': remaining_seats
-                    })
-
-        if remaining_seats <= 0 or not routes:
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/book.html', {
-                    'des': City.objects.all(),
-                    'username': username,
-                    'buschanges_count': buschanges_count,
-                    'error': error_message, 
-                    'city': city,
-                })
-            return Response({'error': error_message}, status=status.HTTP_404_NOT_FOUND)
-        response_data = {
-            'routes': routes,
-            'levels': levels,
-            'buschanges_count': buschanges_count
-        }
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/roo.html', {
-                'routes': routes,
-                'levels': levels,
-                'username': username,
-                'buschanges_count': buschanges_count
-            })
-        return Response(response_data, status=status.HTTP_200_OK)
-"""
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from django.utils import timezone
-from datetime import datetime
-from drf_spectacular.utils import extend_schema
-from .models import City, Route, Bus, Ticket, Buschange, Worker
-from .serializers import BooksSearchRequestSerializer
-@extend_schema(tags=['Booking & Tickets'])
-class Books(APIView):
-    serializer_class = BooksSearchRequestSerializer
 
-    def get_user_from_session(self, request):
-        user_id = request.session.get('worker_id')
-        if user_id:
-            try:
-                return Worker.objects.get(id=user_id)
-            except Worker.DoesNotExist:
-                return None
-        return None
 
-    def get_standardized_city(self, city_name):
-        addis_neighborhoods = ['Kality', 'Ayertena', 'Lamberet', 'Autobustera']
-        if city_name in addis_neighborhoods:
-            return 'Addisababa'
-        return city_name
 
-    @extend_schema(summary="Get booking search page for workers")
-    def get(self, request):
-        worker = self.get_user_from_session(request)
-        if not worker:
-            return Response({'error': 'Worker session not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        buschanges_count = Buschange.objects.count()
-        city = self.get_standardized_city(worker.city)
-        username = worker.username.strip()
-
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/book.html', {
-                'des': City.objects.all(),
-                'username': username,
-                'city': city,
-                'buschanges_count': buschanges_count
-            })
-
-        return Response({
-            'des': [c.name for c in City.objects.all()],
-            'buschanges_count': buschanges_count,
-            'city': city
-        }, status=status.HTTP_200_OK)
-
-    @extend_schema(
-        summary="Search routes (Worker specific)",
-        request=BooksSearchRequestSerializer
-    )
-    def post(self, request):
-        worker = self.get_user_from_session(request)
-        if not worker:
-            return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        username = worker.username.strip()
-        city = self.get_standardized_city(worker.city)
-
-        date = request.data.get('date')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        try:
-            incoming_date = datetime.strptime(date, '%Y-%m-%d').date()
-            if incoming_date < timezone.now().date():
-                raise ValueError("Past date")
-        except (ValueError, TypeError):
-            error_message = "Invalid or past date. Please use YYYY-MM-DD."
-            return self._handle_error_response(request, error_message, city, username)
-        rout_qs = Route.objects.filter(depcity=depcity, descity=descity, date=date)
-        buschanges_count = Buschange.objects.count()
-        routes_data = []
-        levels = None
-
-        for route in rout_qs:
-            buses = Bus.objects.filter(plate_no=route.plate_no)
-            levels = buses.first().level if buses.exists() else None
-            total_seats = sum(int(b.no_seats) for b in buses if b.no_seats.isdigit())
-
-            booked_count = Ticket.objects.filter(
-                depcity=route.depcity,
-                descity=route.descity,
-                date=route.date,
-                plate_no=route.plate_no
-            ).count()
-
-            remaining_seats = total_seats - booked_count
-
-            if remaining_seats > 0:
-                routes_data.append({
-                    'route_id': route.id,
-                    'route_obj': route, # For template
-                    'levels': levels,
-                    'remaining_seats': remaining_seats
-                })
-
-        if not routes_data:
-            return self._handle_error_response(request, "No available travels found.", city, username)
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/roo.html', {
-                'routes': [r['route_obj'] for r in routes_data], # Passing actual objects to template
-                'levels': levels,
-                'username': username,
-                'buschanges_count': buschanges_count
-            })
-
-        return Response({
-            'routes': routes_data,
-            'buschanges_count': buschanges_count
-        }, status=status.HTTP_200_OK)
-
-    def _handle_error_response(self, request, message, city, username):
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/book.html', {
-                'des': City.objects.all(),
-                'city': city,
-                'username': username,
-                'buschanges_count': Buschange.objects.count(),
-                'error': message
-            })
-        return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
-"""
 
 
 
@@ -3417,99 +1482,7 @@ class SelView(APIView):
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import render
-from .models import Bus, Route, Ticket, Worker, Buschange
-from .serializers import RouteSerializer, SeatLookupRequestSerializer, SeatInfoResponseSerializer
-from drf_spectacular.utils import extend_schema
-@extend_schema(tags=['Ticket Booking'])
-class SelView(APIView):
-    serializer_class = SeatLookupRequestSerializer
 
-    def get_user_from_session(self, request):
-        user_id = request.session.get('worker_id')
-        if user_id:
-            try:
-                return Worker.objects.get(id=user_id)
-            except Worker.DoesNotExist:
-                return None
-        return None
-
-    @extend_schema(summary="Get current worker session and notification count")
-    def get(self, request):
-        buschanges_count = Buschange.objects.count()
-        worker = self.get_user_from_session(request)
-
-        if not worker:
-            return Response({'error': 'User session not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        username = worker.username.strip()
-
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/roo.html', {
-                'buschanges_count': buschanges_count,
-                'username': username
-            })
-        return Response({'username': username, 'buschanges_count': buschanges_count}, status=status.HTTP_200_OK)
-
-    @extend_schema(
-        request=SeatLookupRequestSerializer,
-        responses={200: SeatInfoResponseSerializer},
-        summary="Lookup available seats for a specific route"
-    )
-    def post(self, request):
-        plate_no = request.data.get('plate_no')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-
-        buschanges_count = Buschange.objects.count()
-        routes = Route.objects.filter(depcity=depcity, descity=descity, date=date, plate_no=plate_no)
-
-        if not routes.exists():
-            return Response({'error': 'No Travel found for this information!'}, status=status.HTTP_404_NOT_FOUND)
-        bus = Bus.objects.filter(plate_no=plate_no).first()
-        if not bus:
-            return Response({'error': 'Bus not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        total_seats = int(bus.no_seats)
-        levels = bus.level
-
-        booked_tickets = Ticket.objects.filter(
-            depcity=depcity, descity=descity, date=date, plate_no=plate_no
-        ).values_list('no_seat', flat=True)
-
-        booked_seats = sorted([int(seat) for seat in booked_tickets if seat and str(seat).isdigit()])
-        unbooked_seats = [seat for seat in range(1, total_seats + 1) if seat not in booked_seats]
-        remaining_seats_count = len(unbooked_seats)
-
-        if remaining_seats_count <= 0:
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/roo.html', {'error': 'This Bus is Full!', 'buschanges_count': buschanges_count})
-            return Response({'error': 'This Bus is Full!'}, status=status.HTTP_400_BAD_REQUEST)
-        serialized_routes = RouteSerializer(routes, many=True).data
-        response_data = {
-            'routes': serialized_routes,
-            'levels': levels,
-            'remaining_seats': remaining_seats_count,
-            'unbooked_seats': unbooked_seats,
-            'booked_seats': booked_seats,
-            'all_seats': list(range(1, total_seats + 1))
-        }
-        worker = self.get_user_from_session(request)
-        username = worker.username if worker else "Guest"
-
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/booker.html', {
-                **response_data,
-                'username': username,
-                'buschanges_count': buschanges_count
-            })
-        return Response(response_data, status=status.HTTP_200_OK)
-"""
 
 
 
@@ -4212,62 +2185,7 @@ class MyDriver(generics.GenericAPIView):
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.shortcuts import render
-from .models import Worker, Bus
-from .serializers import BusesSerializer
-from rest_framework import generics, status
-from rest_framework.response import Response
-from django.shortcuts import render
-from .models import Bus, Sc
-from .serializers import BusSerializer
-@extend_schema(tags=['Bus & Driver Management'])
 
-class MyBus(generics.GenericAPIView):
-    queryset = Bus.objects.all()
-    serializer_class = BusSerializer
-
-    def get_user_from_session(self, request):
-        user_id = request.session.get('sc_id')  # Get SC ID from session
-        if user_id:
-            return Sc.objects.get(id=user_id)
-        return None
-
-    def get_side_parts(self, side):
-        side_parts = side.split('/')
-        if len(side_parts) == 1:
-            return side_parts[0].strip(), None  # Single part
-        elif len(side_parts) == 2:
-            return side_parts[0].strip(), side_parts[1].strip()  # Two parts
-        else:
-            return None, None  # Invalid format
-
-    def get(self, request):
-        sc_user = self.get_user_from_session(request)
-        if not sc_user:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        side = sc_user.side.strip()  # Get the side of buses
-        first_part, second_part = self.get_side_parts(side)
-        if first_part is None:  # Invalid side format
-            return Response({'error': 'Invalid side format'}, status=status.HTTP_400_BAD_REQUEST)
-        if first_part == '3' or second_part == '3':
-            buses = Bus.objects.filter(sideno__regex=r'^\d{3}$')
-        else:
-            filters = Q(sideno__startswith=first_part) & Q(sideno__regex=r'^\d{4}$')
-            if second_part:
-                filters |= Q(sideno__startswith=second_part) & Q(sideno__regex=r'^\d{4}$')
-            buses = Bus.objects.filter(filters)
-        serialized_routes = BusSerializer(buses, many=True).data
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/mybus.html', {
-                'name': sc_user.name,
-                'side': side,
-                'buses': serialized_routes
-            })
-        return Response(BusSerializer(buses, many=True).data)  # Return JSON response
-"""
 
 
 
@@ -4280,113 +2198,11 @@ from .models import Bus, Sc
 from .serializers import BusSerializer
 
 
-"""
-@extend_schema(tags=['Bus & Driver Management'])
-class MyBus(generics.GenericAPIView):
-    queryset = Bus.objects.all()
-    serializer_class = BusSerializer
-
-    def get_user_from_session(self, request):
-        user_id = request.session.get('sc_id')
-        if user_id:
-            try:
-                return Sc.objects.get(id=user_id)
-            except Sc.DoesNotExist:
-                return None
-        return None
-
-    def get_side_parts(self, side):
-        if not side:
-            return None, None
-        side_parts = side.split('/')
-        if len(side_parts) == 1:
-            return side_parts[0].strip(), None
-        elif len(side_parts) == 2:
-            return side_parts[0].strip(), side_parts[1].strip()
-        return None, None
-
-    def get(self, request):
-        sc_user = self.get_user_from_session(request)
-        if not sc_user:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        side = sc_user.side.strip()
-        first_part, second_part = self.get_side_parts(side)
-
-        if first_part is None:
-            return Response({'error': 'Invalid side format'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Filtering logic
-        if first_part == '3' or second_part == '3':
-            buses = Bus.objects.filter(sideno__regex=r'^\d{3}$')
-        else:
-            filters = Q(sideno__startswith=first_part) & Q(sideno__regex=r'^\d{4}$')
-            if second_part:
-                filters |= Q(sideno__startswith=second_part) & Q(sideno__regex=r'^\d{4}$')
-            buses = Bus.objects.filter(filters)
-
-        # HTML Response (For Browser)
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/mybus.html', {
-                'name': sc_user.name,
-                'side': side,
-                'buses': buses  # IMPORTANT: Pass QuerySet, not serialized data
-            })
-
-        # JSON Response (For API/Postman)
-        serializer = self.get_serializer(buses, many=True)
-        return Response(serializer.data)
-"""
 
 
 
-"""
-#@extend_schema(tags=['Routes & Cities'])
-@extend_schema(tags=['Bus & Driver Management'])
-class MyBus(generics.GenericAPIView):
-    queryset = Route.objects.all()
-    serializer_class = RoutSerializer
 
-    def get_user_from_session(self, request):
-        user_id = request.session.get('sc_id')
-        if user_id:
-            return Sc.objects.get(id=user_id)
-        return None
 
-    def get_sc_names(self):
-        sc_instances = Sc.objects.all()
-        return [sc.name for sc in sc_instances]
-
-    def get_side_parts(self, side):
-        side_parts = side.split('/')
-        if len(side_parts) == 1:
-            return side_parts[0].strip(), None  # Single part
-        elif len(side_parts) == 2:
-            return side_parts[0].strip(), side_parts[1].strip()  # Two parts
-        return None, None  # Invalid format
-
-    def get(self, request, *args, **kwargs):
-        sc_user = self.get_user_from_session(request)
-        if not sc_user:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        side = sc_user.side.strip()
-        first_part, second_part = self.get_side_parts(side)
-
-        if first_part is None:
-            return Response({'error': 'Invalid side format'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if first_part == '3' or second_part == '3':
-            buses = Bus.objects.filter(sideno__regex=r'^\d{3}$')
-        else:
-            filters = Q(sideno__startswith=first_part) & Q(sideno__regex=r'^\d{4}$')
-            if second_part:
-                filters |= Q(sideno__startswith=second_part) & Q(sideno__regex=r'^\d{4}$')
-            buses = Bus.objects.filter(filters)
-        serialized_routes = RoutSerializer(buses, many=True).data
-        return render(request, 'users/mybus.html', {'buses': buses})
-
-"""
 
 @extend_schema(tags=['Bus & Driver Management'])
 class MyBus(generics.GenericAPIView):
@@ -4558,300 +2374,15 @@ class ShowTicketsViewss(APIView):
 
 
 
-"""
-from rest_framework import generics, status
-from rest_framework.response import Response
-from django.shortcuts import render
-from .models import Bus, Sc
-from .serializers import BusSerializer
-@extend_schema(tags=['Bus & Driver Management'])
-class BusInsertView(generics.GenericAPIView):
-    queryset = Bus.objects.all()
-    serializer_class = BusSerializer
-    def get(self, request, *args, **kwargs):
-        sc_user = self.get_user_from_session(request)
-        if not sc_user:
-            return self.handle_error(request, 'User not found.')
-
-        name = sc_user.name
-        side = sc_user.side
-        sc_instances = Sc.objects.all()
-        names = [sc.name for sc in sc_instances]
-
-        return render(request, 'users/Businsert.html', {
-            'name': name,
-            'side': side,
-            'names': names
-        })
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            plate_no = serializer.validated_data['plate_no']
-            sideno = serializer.validated_data['sideno']
-
-            if Bus.objects.filter(plate_no=plate_no).exists():
-                return render(request, 'users/Businsert.html', {'error': 'Plate number already exists.'})
-                return self.handle_error(request, 'Plate number already exists.')
-            if Bus.objects.filter(sideno=sideno).exists():
-                return render(request, 'users/Businsert.html', {'error': 'Side number already exists.'})
-                return self.handle_error(request, 'Side number already exists.')
-
-            serializer.save()
-            return self.handle_success(request, 'Bus registered successfully.')
-        return self.handle_error(request, serializer.errors)
-
-    def handle_success(self, request, message):
-        sc_user = self.get_user_from_session(request)
-
-        if not sc_user:
-            return self.handle_error(request, 'User not found.')
-
-        name = sc_user.name
-        side = sc_user.side
-        sc_instances = Sc.objects.all()
-        names = [sc.name for sc in sc_instances]
-
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/Businsert.html', {
-                'success': message,
-                'name': name,
-                'side': side,
-                'names': names
-            })
-        return Response({'success': message}, status=status.HTTP_201_CREATED)
-
-    def handle_error(self, request, error):
-        sc_user = self.get_user_from_session(request)
-
-        if not sc_user:
-            return self.handle_error(request, 'User not found.')
-
-        name = sc_user.name
-        side = sc_user.side
-        sc_instances = Sc.objects.all()
-        names = [sc.name for sc in sc_instances]
-        error_message = "An unknown error occurred."
-
-        
-
-
-
-
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            error_message = error if isinstance(error, str) else ', '.join(error.values())
-            return render(request, 'users/Businsert.html', {
-                'errors': error_message,
-                'name': name,
-                'side': side,
-                'names': names
-            })
-        return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
-        
 
 
 
 
 
-        # Check if error is a dictionary (like form.errors)
-        if isinstance(error, dict):
-            # Flatten all error lists into a single list of strings
-            error_list = []
-            for messages in error.values():
-                if isinstance(messages, list):
-                    error_list.extend([str(m) for m in messages])
-                else:
-                    error_list.append(str(messages))
-                    error_message = ', '.join(error_list)
-        else:
-            error_message = str(error)
-
-        return render(request, 'users/Businsert.html', {
-        'errors': error_message,
-        'name': name,
-        'side': side,
-        'names': names
-    })
-    def get_user_from_session(self, request):
-        user_id = request.session.get('sc_id')  # Assuming the user ID is stored in the session
-        if user_id:
-            return Sc.objects.get(id=user_id)
-        return None
-"""
 
 
 
-"""
-from rest_framework import generics, status
-from rest_framework.response import Response
-from django.shortcuts import render
-from .models import Bus, Sc
-from .serializers import BusSerializer
-from drf_spectacular.utils import extend_schema
 
-@extend_schema(tags=['Bus & Driver Management'])
-class BusInsertView(generics.GenericAPIView):
-    queryset = Bus.objects.all()
-    serializer_class = BusSerializer
-
-    def get_user_from_session(self, request):
-        user_id = request.session.get('sc_id')
-        if user_id:
-            try:
-                return Sc.objects.get(id=user_id)
-            except Sc.DoesNotExist:
-                return None
-        return None
-
-    def get_context_data(self, request):
-        sc_user = self.get_user_from_session(request)
-        sc_instances = Sc.objects.all()
-        return {
-            'name': sc_user.name if sc_user else "Guest",
-            'side': sc_user.side if sc_user else "",
-            'names': [sc.name for sc in sc_instances]
-        }
-
-    def get(self, request, *args, **kwargs):
-        context = self.get_context_data(request)
-        return render(request, 'users/Businsert.html', context)
-
-    def post(self, request, *args, **kwargs):
-        # 1. Get the data from the request
-        data = request.data.copy()
-
-        # 2. Automatically add "ET " prefix if it's not already there
-        raw_plate = data.get('plate_no', '').strip().upper()
-        if raw_plate and not raw_plate.startswith('ET'):
-            data['plate_no'] = f"ET {raw_plate}"
-        else:
-            data['plate_no'] = raw_plate
-
-        serializer = self.get_serializer(data=data)
-
-        if serializer.is_valid():
-            plate_no = serializer.validated_data['plate_no']
-            sideno = serializer.validated_data['sideno']
-
-            # Check if this prefixed plate already exists in Database
-            if Bus.objects.filter(plate_no=plate_no).exists():
-                return self.handle_error(request, f'Plate number {plate_no} already exists.')
-
-            if Bus.objects.filter(sideno=sideno).exists():
-                return self.handle_error(request, 'Side number already exists.')
-
-            # Save the bus with the "ET" prefix included
-            serializer.save()
-            return self.handle_success(request, f'Bus {plate_no} registered successfully.')
-
-        return self.handle_error(request, serializer.errors)
-
-    def handle_success(self, request, message):
-        context = self.get_context_data(request)
-        context['success'] = message
-        return render(request, 'users/Businsert.html', context)
-
-    def handle_error(self, request, error):
-        context = self.get_context_data(request)
-
-        # Flattening Serializer errors into a single string for the template
-        if isinstance(error, dict):
-            error_list = []
-            for field, msgs in error.items():
-                error_list.append(f"{field.replace('_', ' ').title()}: {msgs[0]}")
-            context['errors'] = ", ".join(error_list)
-        else:
-            context['errors'] = str(error)
-
-        return render(request, 'users/Businsert.html', context)
-"""
-
-
-
-"""
-from rest_framework import generics, status
-from rest_framework.response import Response
-from django.shortcuts import render
-from .models import Bus, Sc
-from .serializers import BusSerializer
-from drf_spectacular.utils import extend_schema
-
-@extend_schema(tags=['Bus & Driver Management'])
-class BusInsertView(generics.GenericAPIView):
-    queryset = Bus.objects.all()
-    serializer_class = BusSerializer
-
-    def get_user_from_session(self, request):
-        user_id = request.session.get('sc_id')
-        if user_id:
-            try:
-                return Sc.objects.get(id=user_id)
-            except Sc.DoesNotExist:
-                return None
-        return None
-
-    def get_context_data(self, request):
-        sc_user = self.get_user_from_session(request)
-        sc_instances = Sc.objects.all()
-        return {
-            'name': sc_user.name if sc_user else "Guest",
-            'side': sc_user.side if sc_user else "",
-            'names': [sc.name for sc in sc_instances]
-        }
-
-    def get(self, request, *args, **kwargs):
-        context = self.get_context_data(request)
-        return render(request, 'users/Businsert.html', context)
-
-    def post(self, request, *args, **kwargs):
-        data = request.data.copy()
-        
-        # 1. Clean the input to prevent double ET- or spaces
-        raw_input = data.get('plate_no', '').strip().upper()
-        clean_input = raw_input.replace('ET-', '').replace('ET', '').replace(' ', '').replace('-', '')
-
-        # 2. Force ET- format
-        if clean_input:
-            data['plate_no'] = f"ET-{clean_input}"
-        else:
-            data['plate_no'] = raw_input 
-
-        serializer = self.get_serializer(data=data)
-        
-        if serializer.is_valid():
-            plate_no = serializer.validated_data['plate_no']
-            sideno = serializer.validated_data['sideno']
-
-            # Duplicate Checks
-            if Bus.objects.filter(plate_no=plate_no).exists():
-                return self.handle_error(request, f'Plate number {plate_no} already exists.')
-            
-            if Bus.objects.filter(sideno=sideno).exists():
-                return self.handle_error(request, 'Side number already exists.')
-
-            serializer.save()
-            return self.handle_success(request, f'Bus {plate_no} registered successfully.')
-        
-        return self.handle_error(request, serializer.errors)
-
-    def handle_success(self, request, message):
-        context = self.get_context_data(request)
-        context['success'] = message
-        return render(request, 'users/Businsert.html', context)
-
-    def handle_error(self, request, error):
-        context = self.get_context_data(request)
-        
-        # Flatten dictionary errors for the HTML template
-        if isinstance(error, dict):
-            error_list = []
-            for field, msgs in error.items():
-                error_list.append(f"{field.replace('_', ' ').title()}: {msgs[0]}")
-            context['errors'] = ", ".join(error_list)
-        else:
-            context['errors'] = str(error)            
-        return render(request, 'users/Businsert.html', context)
-"""
 
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -5020,40 +2551,10 @@ class ForgotPasswordView(APIView):
 
 
 
-"""
-from django.http import JsonResponse
-from django.views import View
-from .models import Buschange, City  # Ensure you import your models
-@extend_schema(tags=['Routes & Cities'])
-class HomePageAPI(View):
-    def get(self, request):
-        try:
-            buschanges = Buschange.objects.all().values()
-            buschanges_count = buschanges.count()  # Count of bus changes
-            cities = City.objects.all().values()
-            response_data = {
-                'buschanges_count': buschanges_count,
-                'buschanges': list(buschanges),
-                'cities': list(cities),
-            }
-            return JsonResponse(response_data)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    def post(self, request):
-        return JsonResponse({'error': 'Invalid HTTP method'}, status=405)  # Handle POST
-    def put(self, request):
-        return JsonResponse({'error': 'Invalid HTTP method'}, status=405)  # Handle PUT
-    def delete(self, request):
-        return JsonResponse({'error': 'Invalid HTTP method'}, status=405)  # Handle DELETE
-"""
 
 
-"""
-def root(request):
-    return render(request, 'users/checkroot.html')
-def selectbus(request):
-    return render(request, 'users/route.html')
-"""
+
+
 
 
 from django.shortcuts import render
@@ -5064,124 +2565,6 @@ class MainPageView(View):  # Your view class
         return render(request, 'users/index.html')  # Ensure this path is correct
 
 
-"""
-from django.http import JsonResponse
-from django.views import View
-from .models import Buschange, City
-@extend_schema(tags=['Bus & Driver Management'])
-class BusChangeView(View):  # Changed class name from RootView to BusChangeView
-    def get(self, request):
-        buschanges = Buschange.objects.all()
-        buschanges_count = buschanges.count()
-        cities = City.objects.all()
-        
-        response_data = {
-            'buschanges_count': buschanges_count,
-            'cities': [city.depcity for city in cities]
-        }
-        return JsonResponse(response_data)
-class RootView(View):
-    def get(self, request):
-        buschanges = Buschange.objects.all()
-        buschanges_count = buschanges.count()
-        cities = City.objects.all()
-        response_data = {
-            'buschanges_count': buschanges_count,
-            'cities': [city.depcity for city in cities] 
-        }
-        return JsonResponse(response_data)
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-class YourApiView(APIView):
-    def get(self, request):
-        buschanges = Buschange.objects.all()
-        buschanges_count = buschanges.count()
-        cities = City.objects.all()
-        data = {
-            'buschanges_count': buschanges_count,
-            'cities': [city.depcity for city in cities]
-            }
-        return Response(data)
-
-from django.http import JsonResponse
-from django.views import View
-from .models import Buschange, City
-class ApiView(View):
-    def get(self, request):
-        buschanges = Buschange.objects.all()
-        buschanges_count = buschanges.count()
-        cities = City.objects.all()
-        response_data = {
-            'buschanges_count': buschanges_count if buschanges_count > 0 else None,
-            'cities': [city.depcity for city in cities]
-        }
-        return JsonResponse(response_data)
-
-from rest_framework.views import APIView
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import CustomUser, Feedback, Route
-class LogoutView(APIView):
-    def post(self, request):
-        return Response({'message': 'Logged out successfully.'}, status=status.HTTP_200_OK)
-class UsersView(APIView):
-    def get(self, request):
-        users = CustomUser.objects.all()
-        user_data = [{'username': user.username, 'email': user.email} for user in users]
-        return Response({'users': user_data}, status=status.HTTP_200_OK)
-
-
-@extend_schema(tags=['Routes & Cities'])
-class RoutesView(APIView):
-    def get(self, request):
-        routes = Route.objects.all()
-        route_data = [{'id': route.id, 'depcity': route.depcity, 'descity': route.descity} for route in routes]
-        return Response({'routes': route_data}, status=status.HTTP_200_OK)
-
-@extend_schema(tags=['Booking & Tickets'])
-@extend_schema(tags=['Bus & Driver Management'])
-class SelectBusView(APIView):
-    def get(self, request):
-        return Response({'message': 'Select a bus for your route.'}, status=status.HTTP_200_OK)
-
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from .models import Ticket, Service_fee
-from .serializers import TicketSerializer, BusSerializer, FeedbackSerializer
-@api_view(['POST'])
-def book_ticket(request):
-    if request.method == 'POST':
-        serializer = TicketSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET'])
-def get_tickets(request):
-    if request.method == 'GET':
-        tickets = Ticket.objects.all()
-        serializer = TicketSerializer(tickets, many=True)
-        return Response(serializer.data)
-"""
-
-
-
-"""
-from .serializers import BuschangeSerializer, ServiceFeeSerializer
-@extend_schema(tags=['Admin Logic'])
-class BuschangeList(generics.ListAPIView):
-    queryset = Buschange.objects.all()
-    serializer_class = BuschangeSerializer
-
-@extend_schema(tags=['Finance'])
-class ServiceFeeList(generics.ListAPIView):
-    queryset = Service_fee.objects.all()
-    serializer_class = ServiceFeeSerializer
-"""
 
 
 
@@ -5191,115 +2574,12 @@ class ServiceFeeList(generics.ListAPIView):
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.shortcuts import render
-from django.db import transaction
-from django.core.mail import send_mail
-from django.conf import settings
-from rest_framework import status
-from drf_spectacular.utils import extend_schema
-from .models import Ticket, City, Bus
-from .serializers import TicketSerializer
 
-@extend_schema(tags=['Booking & Tickets'])
-class TicketBookingViews(APIView):
-    serializer_class = TicketSerializer 
 
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/ticket.html', {'des': des})
-        return Response({'cities': [city.depcity for city in des]})
-    @extend_schema(
-        description="Book multiple tickets using list arrays (form-data).",
-        responses={201: TicketSerializer(many=True)}
-    )
-    def post(self, request):
-        firstnames = request.data.getlist('firstname[]')
-        emails = request.data.getlist('email[]')
-        genders = request.data.getlist('gender[]')
-        lastnames = request.data.getlist('lastname[]')
-        phones = request.data.getlist('phone[]')
-        prices = request.data.getlist('price[]')
-        side_nos = request.data.getlist('side_no[]')
-        plate_nos = request.data.getlist('plate_no[]')
-        usernames = request.data.getlist('username[]')
-        dates = request.data.getlist('date[]')
-        no_seats = request.data.getlist('no_seat[]')
-        depcitys = request.data.getlist('depcity[]')
-        descitys = request.data.getlist('descity[]')
-        prs = request.data.getlist('pr[]')
-        das = request.data.getlist('da[]')
-        try:
-            total_price = sum(float(price) for price in prices)
-            if prs:
-                total_price -= sum(float(p) for p in prs)
-        except ValueError:
-            return Response({'error': 'Invalid price format'}, status=400)
 
-        min_length = min(
-            len(firstnames), len(lastnames), len(emails), len(genders),
-            len(phones), len(prices), len(side_nos), len(plate_nos),
-            len(depcitys), len(descitys), len(dates), len(no_seats)
-        )
 
-        used_seats = set()
-        tickets = []
 
-        with transaction.atomic():
-            for i in range(min_length):
-                current_seat = no_seats[i]
 
-                if current_seat in used_seats:
-                    return Response({'error': f'Seat {current_seat} already selected.'}, status=400)
-
-                used_seats.add(current_seat)
-                bus_info = Bus.objects.filter(sideno=side_nos[i]).first()
-                
-                level = bus_info.level if bus_info else "Unknown"
-                name = bus_info.name if bus_info else "Unknown"
-
-                validated_data = {
-                    'firstname': firstnames[i],
-                    'lastname': lastnames[i],
-                    'phone': phones[i],
-                    'price': prices[i],
-                    'side_no': side_nos[i],
-                    'plate_no': plate_nos[i],
-                    'date': dates[i],
-                    'email': emails[i],
-                    'gender': genders[i],
-                    'depcity': depcitys[i],
-                    'descity': descitys[i],
-                    'username': usernames[i] if i < len(usernames) else None,
-                    'no_seat': current_seat,
-                }
-                ticket_instance = Ticket(**validated_data)
-                ticket_instance.save() 
-                tickets.append(ticket_instance)
-                self.send_ticket_email(validated_data, ticket_instance.qr_code)
-            if prs:
-                for i in range(min_length):
-                    Ticket.objects.filter(firstname=firstnames[i], date=das[i]).delete()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            template = 'users/myticket.html' if (usernames and usernames[0]) else 'users/payment.html'
-            return render(request, template, {
-                'success': 'Booked successfully!',
-                'tickets': tickets,
-                'total_price': total_price,
-                'level': level,
-                'name': name
-            })
-
-        serializer = TicketSerializer(tickets, many=True)
-        return Response({'message': 'Booking successful.', 'tickets': serializer.data}, status=201)
-    def send_ticket_email(self, data, qr):
-        subject = 'Ticket Booking Confirmation'
-        message = f"Hello {data['firstname']}, your ticket is confirmed. QR: {qr}"
-        send_mail(subject, message, settings.EMAIL_HOST_USER, [data['email']], fail_silently=True)
-"""
 
 
 
@@ -5383,8 +2663,7 @@ class TicketBookingViews(APIView):
                     'gender': genders[i],
                     'depcity': depcitys[i],
                     'descity': descitys[i],
-                    #'username': usernames[i] if i < len(usernames) else "",
-                    'username': usernames[i] if (i < len(usernames) and usernames[i]) else "Guest",
+                    'username': usernames[i] if i < len(usernames) else "",
                     'no_seat': current_seat,
                 }
                 ticket_instance = Ticket(**validated_data)
@@ -5418,98 +2697,8 @@ class TicketBookingViews(APIView):
 
 
 
-"""
-from django.shortcuts import render
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status, serializers  # Added serializers here
-from drf_spectacular.utils import extend_schema
 
-from .models import Ticket, City, Worker
-from .serializers import (
-    TSerializer, 
-    BalanceSearchSerializer, 
-    TotalBalanceResponseSerializer
-)
 
-@extend_schema(tags=['Finance & Accounting'])
-class Totalballance(APIView):
-    
-    @extend_schema(
-        summary="Get balance page or city list",
-        responses={200: serializers.Serializer} 
-    )
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/ballance.html', {'des': des})
-        return Response({'cities': [city.depcity for city in des]}, status=status.HTTP_200_OK)
-
-    @extend_schema(
-        summary="Calculate total balance by username and city",
-        request=BalanceSearchSerializer,
-        responses={200: TotalBalanceResponseSerializer}
-    )
-    def post(self, request):
-        dates = request.data.getlist('date[]') if 'date[]' in request.data else request.data.get('date', [])
-
-        if not dates:
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/ballance.html', {'error': 'No dates provided', 'des': City.objects.all()})
-            return Response({'error': 'No dates provided'}, status=status.HTTP_400_BAD_REQUEST)
-
-        totals_by_username = {}
-        tickets = Ticket.objects.filter(booked_time__date__in=dates)
-
-        for ticket in tickets:
-            username = ticket.username if ticket.username else "Selfbook"
-            
-            try:
-                price = float(ticket.price)
-            except (ValueError, TypeError):
-                continue
-            totals_by_username[username] = totals_by_username.get(username, 0) + price
-        workers = Worker.objects.filter(username__in=totals_by_username.keys())
-        username_city_map = {worker.username: worker.city for worker in workers}
-        total_data = {
-            username: {
-                'total_balance': total,
-                'city': username_city_map.get(username, 'Unknown')
-            } 
-            for username, total in totals_by_username.items() if total > 0
-        }
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/totalballance.html', {
-                'totals': total_data
-            })
-            
-        return Response({'totals': total_data}, status=status.HTTP_200_OK)
-"""
-"""
-@extend_schema(tags=['Finance & Accounting'])
-class Totalballance(APIView):
-    # Fix: This line tells spectacular what serializer to use by default
-    serializer_class = TotalBalanceResponseSerializer
-
-    @extend_schema(
-        summary="Get balance page or city list",
-        responses={200: serializers.Serializer}
-    )
-    def get(self, request): # Ensure this is indented (4 spaces)
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/ballance.html', {'des': des})
-        return Response({'cities': [city.depcity for city in des]}, status=status.HTTP_200_OK)
-
-    @extend_schema(
-        summary="Calculate total balance",
-        request=BalanceSearchSerializer,
-        responses={200: TotalBalanceResponseSerializer}
-    )
-    def post(self, request):
-        # ... (your existing calculation logic) ...
-        return Response({'totals': total_data}, status=status.HTTP_200_OK)
-"""
 
 
 
@@ -5588,197 +2777,23 @@ class Totalballance(APIView):
 
 
 
-"""
-from django.shortcuts import render
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status, serializers
-from drf_spectacular.utils import extend_schema
-from .models import Ticket, City, Worker
-from .serializers import (
-    TSerializer,
-    BalanceSearchSerializer,
-    TotalBalanceResponseSerializer
-)
-# Use component_name here to clear the [Totalballance > Serializer] warning
-#@extend_schema(tags=['Finance & Accounting'], component_name="TotalBalanceView")
-@extend_schema(tags=['Finance & Accounting'])
-class Totalballance(APIView):
-    # This line tells the auditor exactly what data structure this view uses
-    serializer_class = TotalBalanceResponseSerializer
-
-    @extend_schema(
-        summary="Get balance page or city list",
-        responses={200: serializers.Serializer}
-    )
-    def get(self, request):
-        # INDENTED CORRECTLY
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/ballance.html', {'des': des})
-        return Response({'cities': [city.depcity for city in des]}, status=status.HTTP_200_OK)
-
-    @extend_schema(
-        summary="Calculate total balance by username and city",
-        request=BalanceSearchSerializer,
-        responses={200: TotalBalanceResponseSerializer}
-    )
-    def post(self, request):
-        # INDENTED CORRECTLY
-        dates = request.data.getlist('date[]') if 'date[]' in request.data else request.data.get('date', [])
-
-        if not dates:
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/ballance.html', {'error': 'No dates provided', 'des': City.objects.all()})
-            return Response({'error': 'No dates provided'}, status=status.HTTP_400_BAD_REQUEST)
-
-        totals_by_username = {}
-        tickets = Ticket.objects.filter(booked_time__date__in=dates)
-
-        for ticket in tickets:
-            username = ticket.username if ticket.username else "Selfbook"
-            try:
-                price = float(ticket.price)
-            except (ValueError, TypeError):
-                continue
-            totals_by_username[username] = totals_by_username.get(username, 0) + price
-
-        workers = Worker.objects.filter(username__in=totals_by_username.keys())
-        username_city_map = {worker.username: worker.city for worker in workers}
-
-        total_data = {
-            username: {
-                'total_balance': total,
-                'city': username_city_map.get(username, 'Unknown')
-            }
-            for username, total in totals_by_username.items() if total > 0
-        }
-
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/totalballance.html', {
-                'totals': total_data
-            })
-        return Response({'totals': total_data}, status=status.HTTP_200_OK)
-"""
 
 
 
 
 
 
-"""
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import City, Buschange, Ticket
-@extend_schema(tags=['Booking & Tickets'])
-class TicketAPI(APIView):
-    def get(self, request):
-        des = City.objects.all()
-        buschanges = Buschange.objects.all()
-        buschanges_count = buschanges.count()
-        cities = [city.name for city in des]
-        return Response({'cities': cities, 'buschanges_count': buschanges_count}, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-        firstname = request.data.get('firstname')
-        lastname = request.data.get('lastname')
-
-        ticket = Ticket.objects.filter(
-            depcity=depcity,
-            descity=descity,
-            date=date,
-            firstname=firstname,
-            lastname=lastname
-        )
-        if ticket.exists():
-            qr_code_path = ticket.first().generate_qr_code()  # Assuming this method exists
-            return Response({
-                'ticket': ticket.first().id,
-                'qr_code_path': qr_code_path,
-                'success': "Your Ticket is:"
-            }, status=status.HTTP_200_OK)
-        elif depcity == descity:
-            return Response({'error': "Entered Departure and Destination are the same!"}, status=status.HTTP_400_BAD_REQUEST)
-        elif firstname == lastname:
-            return Response({'error': "Entered Firstname and Lastname are the same!"}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({'error': "No Ticket booked info for the entered details!"}, status=status.HTTP_404_NOT_FOUND)
-"""
 
 
 
 
 
-"""
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import City, Buschange, Ticket
-@extend_schema(tags=['Booking & Tickets'])
-class GetTicketView(APIView):
-    def get(self, request):
-        buschanges_count = Buschange.objects.count()
-        return Response({
-            'buschanges_count': buschanges_count
-        }, status=status.HTTP_200_OK)
-    def post(self, request):
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-        firstname = request.data.get('firstname')
-        lastname = request.data.get('lastname')
-        ticket = Ticket.objects.filter(
-            depcity=depcity,
-            descity=descity,
-            date=date,
-            firstname=firstname,
-            lastname=lastname
-        )
-        if ticket.exists():
-            qr_code_path = ticket.first().generate_qr_code()
-            return Response({
-                'ticket': ticket.first().id,
-                'qr_code_path': qr_code_path,
-                'success': "Your Ticket is retrieved."
-            }, status=status.HTTP_200_OK)
-        elif depcity == descity:
-            return Response({'error': "Entered Departure and Destination are the same!"}, status=status.HTTP_400_BAD_REQUEST)
-        elif firstname == lastname:
-            return Response({'error': "Entered Firstname and Lastname are the same!"}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({'error': "No Ticket booked info for the entered details!"}, status=status.HTTP_404_NOT_FOUND)
-"""
 
 
-"""
-def work(request): 
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        phone = request.POST.get('phone')
-        fname = request.POST.get('fname')
-        lname = request.POST.get('lname')
-        gender = request.POST.get('gender')
-        plate_no = request.POST.get('plate_no')
-        side_no = request.POST.get('side_no')
-        
-        worker = Worker.objects.create(
-            username=username,
-            plate_no=plate_no,
-            side_no=side_no,
-            password=password,
-            phone=phone,
-            fname=fname,
-            lname=lname,
-            gender=gender
-        )
-        return render(request, 'users/worker.html')
-    return render(request, 'users/worker.html')
-"""
+
+
+
+
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -5851,80 +2866,15 @@ def city_view(request):
     return render(request, 'users/city.html')
 
 
-"""
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import City
-@extend_schema(tags=['Routes & Cities'])
-class CityView(APIView):
-    def get(self, request):
-        cities = City.objects.all()
-        return Response({'cities': [city.depcity for city in cities]}, status=status.HTTP_200_OK)
-    def post(self, request):
-        depcity = request.data.get('depcity')
-        if City.objects.filter(depcity=depcity).exists():
-            return Response({'error': 'This city already exists.'}, status=status.HTTP_400_BAD_REQUEST)
-        city = City.objects.create(depcity=depcity)
-        return Response({'success': 'City registered successfully!'}, status=status.HTTP_201_CREATED)
-"""
 
 
 
-"""
-from django.shortcuts import render
-from django.contrib.auth.hashers import make_password
-from .models import City, Bus
-def admins(request):
-    des = City.objects.all()  # Fetch all cities
-    bus = Bus.objects.all()    # Fetch all buses
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        phone = request.POST.get('phone')
-        fname = request.POST.get('fname')
-        lname = request.POST.get('lname')
-        gender = request.POST.get('gender')
-        email = request.POST.get('email')
-        if Admin.objects.filter(username=username).exists():
-            return render(request, 'users/admin.html', {'bus': bus, 'des': des, 'error': 'Username Already Exists.'})
-        if Admin.objects.filter(email=email).exists():
-            return render(request, 'users/admin.html', {'bus': bus, 'des': des, 'error': 'This Admin already Exists.'})
-        if Admin.objects.filter(phone=phone).exists():
-            return render(request, 'users/admin.html', {'bus': bus, 'des': des, 'error': 'Phone already Exists.'})
-        admin = Admin.objects.create(
-            username=username,
-            fname=fname,
-            lname=lname,
-            password=password,
-            phone=phone,
-            email=email,
-            gender=gender
-        )
-        return render(request, 'users/admin.html', {'bus': bus, 'des': des, 'success': 'Admin Created Successfully.'})
-    return render(request, 'users/admin.html', {'bus': bus, 'des': des})  # Render on GET request
-"""
 
 
 
-"""
-def ad(request):
-    return render(request, 'users/ad.html')
-def get_user(request):
-    return render(request, 'users/checkuser.html')
-def get_route(request):
-    des = City.objects.all()
-    if request.method == 'POST':
-        date = request.POST.get('date')
-        depcity = request.POST.get('depcity')
-        descity = request.POST.get('descity')
-        routes = Route.objects.filter(depcity=depcity, descity=descity, date=date)         
-        if routes.exists():
-            return render(request, 'users/checkroot.html', {'routes': routes, 'success': "Routes info---"})
-        else:
-            return render(request, 'users/index.html', {'des': des, 'error': "Try Again! There is no route information!"})
-    return render(request, 'users/index.html', {'des': des}) 
-"""
+
+
+
 
 
 from rest_framework.views import APIView
@@ -6713,82 +3663,7 @@ class Safaricompassword(APIView):
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
-from rest_framework import status
-from django.shortcuts import render
-from drf_yasg.utils import swagger_auto_schema
 
-from .models import Route, City
-from .serializers import RoutSerializer, TicketSearchSerializer
-
-class DeleteTicketViews(APIView):
-    # Enable both JSON and HTML rendering
-    renderer_classes = [JSONRenderer, TemplateHTMLRenderer]
-
-    @swagger_auto_schema(
-        operation_description="Load the route search form or list cities.",
-        responses={200: "HTML Form or JSON List"}
-    )
-    def get(self, request):
-        des = City.objects.all()
-        # Ensure we return a list of city names for JSON users
-        cities_list = [city.name for city in des] 
-
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/cheeckrouteeee.html', {'des': des})
-        
-        return Response({'cities': cities_list}, status=status.HTTP_200_OK)
-
-    @swagger_auto_schema(
-        operation_description="Search for available routes by date and cities.",
-        request_body=TicketSearchSerializer,
-        responses={
-            200: RoutSerializer(many=True),
-            404: "No routes found"
-        }
-    )
-    def post(self, request):
-        # 1. Use the serializer to validate incoming data
-        serializer = TicketSearchSerializer(data=request.data)
-        
-        if not serializer.is_valid():
-            # If data is invalid (e.g., bad date format), return errors
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/cheeckrouteeee.html', {
-                    'error': 'Invalid data provided', 
-                    'des': City.objects.all()
-                })
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # 2. Get validated data from the serializer
-        v_data = serializer.validated_data
-        routes = Route.objects.filter(
-            date=v_data.get('date'),
-            depcity=v_data.get('depcity'),
-            descity=v_data.get('descity')
-        )
-
-        # 3. Handle results
-        if routes.exists():
-            serialized_route = RoutSerializer(routes, many=True)
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/rooteeee.html', {'routes': serialized_route.data})
-            
-            return Response({'routes': serialized_route.data}, status=status.HTTP_200_OK)
-        
-        else:
-            error_msg = 'No booked tickets for this travel'
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/cheeckrouteeee.html', {
-                    'error': error_msg, 
-                    'des': City.objects.all()
-                })
-            
-            return Response({'error': error_msg}, status=status.HTTP_404_NOT_FOUND)
-"""
 
 
 
@@ -6853,72 +3728,7 @@ class DeleteTickets(APIView):
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
-from rest_framework import status
-from django.shortcuts import render
-from drf_yasg.utils import swagger_auto_schema
 
-from .models import Ticket, Route
-from .serializers import (
-    TickSerializer,
-    RoutSerializer,
-    TicketSearchSerializer  # The new serializer
-)
-
-class DeleteTickets(APIView):
-    renderer_classes = [JSONRenderer, TemplateHTMLRenderer]
-
-    @swagger_auto_schema(
-        request_body=TicketSearchSerializer,
-        responses={200: TickSerializer(many=True), 404: "Not Found"}
-    )
-    def post(self, request):
-        # Use the serializer to validate incoming data
-        serializer = TicketSearchSerializer(data=request.data)
-
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # Access validated data
-        data = serializer.validated_data
-        date = data.get('date')
-        plate_no = data.get('plate_no')
-        depcity = data.get('depcity')
-        descity = data.get('descity')
-
-        # Query Logic
-        ticket_qs = Ticket.objects.filter(
-            plate_no=plate_no,
-            date=date,
-            depcity=depcity,
-            descity=descity
-        )
-
-        if ticket_qs.exists():
-            serialized_data = TickSerializer(ticket_qs, many=True).data
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/deleteticket.html', {'route': serialized_data})
-            return Response({'route': serialized_data}, status=status.HTTP_200_OK)
-
-        # Fallback: Find available routes if no tickets exist
-        route_qs = Route.objects.filter(date=date, depcity=depcity, descity=descity)
-        serialized_routes = RoutSerializer(route_qs, many=True).data
-        error_msg = 'No booked tickets for this travel'
-
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/rooteeee.html', {
-                'error': error_msg,
-                'routes': serialized_routes
-            })
-
-        return Response({
-            'error': error_msg,
-            'routes': serialized_routes
-        }, status=status.HTTP_404_NOT_FOUND)
-"""
 
 
 
@@ -6955,72 +3765,7 @@ class DeleteTicketsView(APIView):
             return Response({'error': 'No ticket found to delete.'}, status=status.HTTP_404_NOT_FOUND)
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
-from rest_framework import status
-from django.shortcuts import render
-from drf_yasg.utils import swagger_auto_schema
 
-from .models import Ticket
-from .serializers import TicketDeletionSerializer, TickSerializer
-
-class DeleteTicketsView(APIView):
-    # Enable both JSON and HTML rendering
-    renderer_classes = [JSONRenderer, TemplateHTMLRenderer]
-
-    @swagger_auto_schema(
-        operation_description="Delete specific tickets based on passenger details and route.",
-        request_body=TicketDeletionSerializer,
-        responses={
-            200: "Ticket deleted successfully",
-            400: "Invalid data provided",
-            404: "No ticket found to delete"
-        }
-    )
-    def post(self, request):
-        # 1. Validate data using the Serializer
-        serializer = TicketDeletionSerializer(data=request.data)
-        if not serializer.is_valid():
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/deleteticket.html', {'error': 'Invalid data provided.'})
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # 2. Extract validated data
-        v_data = serializer.validated_data
-        # 3. Perform the deletion
-        tickets_to_delete = Ticket.objects.filter(
-            plate_no=v_data['plate_no'],
-            date=v_data['date'],
-            firstname=v_data['firstname'],
-            lastname=v_data['lastname'],
-            phone=v_data['phone'],
-            depcity=v_data['depcity'],
-            descity=v_data['descity']
-        )
-        if tickets_to_delete.exists():
-            tickets_to_delete.delete()
-            # Fetch remaining tickets for the same route to update the UI
-            remaining_route_tickets = Ticket.objects.filter(
-                depcity=v_data['depcity'],
-                descity=v_data['descity'],
-                plate_no=v_data['plate_no'],
-                date=v_data['date']
-            )
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/deleteticket.html', {
-                    'success': 'Ticket deleted successfully.',
-                    'route': remaining_route_tickets
-                })
-            return Response({'message': 'Ticket deleted successfully.'}, status=status.HTTP_200_OK)
-        else:
-            # 4. Handle Case where no ticket was found
-            error_msg = 'No ticket found to delete.'
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/deleteticket.html', {'error': error_msg})
-            return Response({'error': error_msg}, status=status.HTTP_404_NOT_FOUND)
-"""
 
 
 
@@ -7092,35 +3837,7 @@ class TicketInfoView(APIView):
 
 
 
-"""
-from rest_framework.response import Response
-from django.shortcuts import render
-from .models import Route, City  
-from .serializers import RoutSerializer, TickSerializer
-@extend_schema(tags=['Booking & Tickets'])
-class DeleteTicketViews(APIView):
-    def get(self, request):
-        des = City.objects.all()  
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/cheeckrouteeee.html', {'des': des})  # Render the form
-        else:
-            return Response({'cities': [city.depcity for city in des]})  # Return a JSON response with city names
-    def post(self, request):
-        date = request.data.get('date')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        routes = Route.objects.filter(date=date, depcity=depcity, descity=descity)
-        if routes.exists():
-            serialized_route = RoutSerializer(routes, many=True)
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/rooteeee.html', {'routes': serialized_route.data})  # Render HTML with routes
-            return Response({'routes': serialized_route.data})  # Return JSON response with routes
-        else:
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                des = City.objects.all()  # Fetch all cities for the form
-                return render(request, 'users/cheeckrouteeee.html', {'error': 'No booked tickets for this travel', 'des': des})
-            return Response({'error': 'No booked tickets for this travel'}, status=404)
-"""
+
 
 
 from rest_framework.views import APIView
@@ -7133,128 +3850,15 @@ from .serializers import (RoutSerializer, TicketSearchRequestSerializer, RouteRe
 )
 
 
-"""
-@extend_schema(tags=['Booking & Tickets'])
-#from rest_framework.response import Response
-#from django.shortcuts import render
-#from .models import Route, City
-#from .serializers import RoutSerializer, TickSerializer
-class DeleteTicketViews(APIView):
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/cheeckrouteeee.html', {'des': des})  # Render the form
-        else:
-            return Response({'cities': [city.depcity for city in des]})  # Return a JSON response with city names
-    def post(self, request):
-        date = request.data.get('date')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        routes = Route.objects.filter(date=date, depcity=depcity, descity=descity)
-        if routes.exists():
-            serialized_route = RoutSerializer(routes, many=True)
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/rooteeee.html', {'routes': serialized_route.data})  # Render HTML with routes
-            return Response({'routes': serialized_route.data})  # Return JSON response with routes
-        else:
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                des = City.objects.all()  # Fetch all cities for the form
-                return render(request, 'users/cheeckrouteeee.html', {'error': 'No booked tickets for this travel', 'des': des})
-            return Response({'error': 'No booked tickets for this travel'}, status=404)
-"""
-
-
-"""
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema
-from django.shortcuts import render
-class DeleteTicketViews(APIView):
-    @extend_schema(
-        summary="Get all available cities for ticket deletion",
-        responses={200: CityListSerializer}
-    )
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/cheeckrouteeee.html', {'des': des})
-        city_names = [city.depcity for city in des]
-        return Response({'cities': city_names}, status=status.HTTP_200_OK)
-
-    @extend_schema(
-        summary="Search for routes to delete tickets",
-        request=TicketSearchRequestSerializer,
-        responses={200: RouteResponseSerializer, 404: RouteResponseSerializer}
-    )
-    def post(self, request):
-        serializer = TicketSearchRequestSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        date = serializer.validated_data.get('date')
-        depcity = serializer.validated_data.get('depcity')
-        descity = serializer.validated_data.get('descity')
-        routes = Route.objects.filter(date=date, depcity=depcity, descity=descity)
-
-        if routes.exists():
-            serialized_route = RouteSerializer(routes, many=True)
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/rooteeee.html', {'routes': serialized_route.data})
-            return Response({'routes': serialized_route.data}, status=status.HTTP_200_OK)
-        else:
-            error_msg = 'No booked tickets for this travel'
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                des = City.objects.all()
-                return render(request, 'users/cheeckrouteeee.html', {
-                    'error': error_msg,
-                    'des': des
-                })
-            return Response({'error': error_msg}, status=status.HTTP_404_NOT_FOUND)
-"""
 
 
 
 
-"""
-class DeleteTicketViews(APIView):
-    @extend_schema(
-        summary="Get all available cities for ticket deletion",
-        responses={200: CityListSerializer}
-    )
-    def get(self, request):
-        des = City.objects.all()
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            return render(request, 'users/cheeckrouteeee.html', {'des': des})
-        city_names = [city.depcity for city in des]
-        return Response({'cities': city_names}, status=status.HTTP_200_OK)
-    @extend_schema(
-        summary="Search for routes to delete tickets",
-        request=TicketSearchRequestSerializer,
-        responses={200: RouteResponseSerializer, 404: RouteResponseSerializer}
-    )
-    def post(self, request):
-        serializer = TicketSearchRequestSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        date = serializer.validated_data.get('date')
-        depcity = serializer.validated_data.get('depcity')
-        descity = serializer.validated_data.get('descity')
-        routes = Route.objects.filter(date=date, depcity=depcity, descity=descity)
-        if routes.exists():
-            serialized_route = RoutSerializer(routes, many=True)
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                return render(request, 'users/rooteeee.html', {'routes': serialized_route.data})
-            return Response({'routes': serialized_route.data}, status=status.HTTP_200_OK)
-        else:
-            error_msg = 'No booked tickets for this travel'
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                des = City.objects.all()
-                return render(request, 'users/cheeckrouteeee.html', {
-                    'error': error_msg,
-                    'des': des
-                })
-            return Response({'error': error_msg}, status=status.HTTP_404_NOT_FOUND)
-"""
+
+
+
+
+
 
 
 
@@ -7309,35 +3913,7 @@ class SelectBusView(APIView):
 
 
 
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import get_object_or_404
-from .models import City, Route
-@extend_schema(tags=['Routes & Cities'])
-class RouteLookupView(APIView):
-    def get(self, request):
-        depcity_name = request.data.get('depcity')
-        descity_name = request.data.get('descity')
-        date = request.data.get('date')
-        try:
-            depcity = get_object_or_404(City, name=depcity_name)
-            descity = get_object_or_404(City, name=descity_name)
-            routes = Route.objects.filter(depcity=depcity, descity=descity, date=date)
-            if routes.exists():
-                routes_data = [{'route_id': route.id, 'depcity': route.depcity.name, 'descity': route.descity.name, 'date': route.date} for route in routes]
-                return Response({'success': 'Routes retrieved successfully.', 'routes': routes_data}, status=status.HTTP_200_OK)
-            else:
-                return Response({'error': 'No routes found for the specified criteria.'}, status=status.HTTP_404_NOT_FOUND)
-        except City.DoesNotExist:
-            return Response({'error': 'One or both cities do not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
-
-from django.http import HttpResponse
-def home_view(request):
-    return HttpResponse("Welcome to the API Home Page!")  # Customize this message as needed
-"""
 
 
 
@@ -7881,71 +4457,7 @@ class RouteDeleteViews(APIView):
 
 
 
-"""
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import Route, Ticket
-@extend_schema(tags=['Routes & Cities'])
-class RouteDeleteView(APIView):
-    def post(self, request):
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-        plate_no = request.data.get('plate_no')
-        side_no = request.data.get('side_no')
-        booked_tickets = Ticket.objects.filter(
-            depcity=depcity,
-            descity=descity,
-            date=date,
-            plate_no=plate_no,
-            side_no=side_no
-        ).count()
-        if booked_tickets > 0:
-            return Response({'error': "This route has booked tickets."}, status=status.HTTP_400_BAD_REQUEST)
-        rows_deleted, _ = Route.objects.filter(
-            depcity=depcity,
-            descity=descity,
-            date=date,
-            plate_no=plate_no,
-            side_no=side_no
-        ).delete()
-        if rows_deleted > 0:
-            return Response({'success': "Route deleted successfully!"}, status=status.HTTP_200_OK)
-        else:
-            return Response({'error': "No route found with the provided information."}, status=status.HTTP_404_NOT_FOUND)
-    def get(self, request):
-        routes = Route.objects.all()
-        if routes.exists():
-            route_data = [{'depcity': route.depcity, 'descity': route.descity, 'date': route.date, 'plate_no': route.plate_no, 'side_no': route.side_no} for route in routes]
-            return Response({'routes': route_data}, status=status.HTTP_200_OK)
-        else:
-            return Response({'error': "There are no routes to delete."}, status=status.HTTP_404_NOT_FOUND)
 
-
-from django.http import HttpResponse
-def home_view(request):
-    return HttpResponse("Welcome to the API Home Page!")
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import Worker
-@extend_schema(tags=['Bus & Driver Management'])
-class WorkerDeleteView(APIView):
-    def post(self, request):
-        fname = request.data.get('fname')
-        lname = request.data.get('lname')
-        try:
-            worker = Worker.objects.get(fname=fname, lname=lname)
-            worker.delete()
-            return Response({'success': 'Driver deleted successfully.'}, status=status.HTTP_200_OK)
-        except Worker.DoesNotExist:
-            return Response({'error': 'No driver found for deletion.'}, status=status.HTTP_404_NOT_FOUND)
-    def get(self, request):
-        drivers = Worker.objects.all()
-        driver_data = [{'plate_no': driver.plate_no, 'side_no': driver.side_no, 'fname': driver.fname, 'lname': driver.lname} for driver in drivers]
-        return Response({'drivers': driver_data}, status=status.HTTP_200_OK)
-"""
 
 
 
@@ -8004,105 +4516,16 @@ class ShowTicketsViews(APIView):
 
 
 
-"""
-@extend_schema(tags=['Routes & Cities'])
-class ViewRoute(APIView):
-    def post(self, request):
-        date = request.data.get('date')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        tickets = Route.objects.filter(
-            date=date,
-            depcity=depcity,
-            descity=descity
-        )
-        if tickets.exists():
-            ticket_data = [{'id': ticket.id, 'depcity': ticket.depcity, 'descity': ticket.descity, 'date': ticket.date, 'plate_no': ticket.plate_no} for ticket in tickets]
-            return Response({'tickets': ticket_data}, status=status.HTTP_200_OK)
-        else:
-            return Response({
-                'error': 'There are no booked tickets for this route.',
-                'routes': [{'side_no': route.side_no, 'plate_no': route.plate_no} for route in routes]
-            }, status=status.HTTP_404_NOT_FOUND)
-    def get(self, request):
-        return Response({'error': 'Use POST to retrieve tickets.'}, status=status.HTTP_400_BAD_REQUEST)
-"""
-
-
-"""
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import Route
-@extend_schema(tags=['Routes & Cities'])
-class ViewRoute(APIView):
-    def post(self, request):
-        date = request.data.get('date')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        tickets = Route.objects.filter(
-            date=date,
-            depcity=depcity,
-            descity=descity
-        )
-        if tickets.exists():
-            ticket_data = [{'id': ticket.id, 'depcity': ticket.depcity, 'descity': ticket.descity, 'date': ticket.date, 'plate_no': ticket.plate_no} for ticket in tickets]
-            return Response({'tickets': ticket_data}, status=status.HTTP_200_OK)
-        else:
-            return Response({'error': 'There are no booked tickets for this route.'}, status=status.HTTP_404_NOT_FOUND)
-    def get(self, request):
-        return Response({'error': 'Use POST to retrieve tickets.'}, status=status.HTTP_400_BAD_REQUEST)
-@extend_schema(tags=['Routes & Cities'])
-class ViewRoute(View):
-    def get(self, request):
-        data = {'message': 'Hello from the API!'}
-        return JsonResponse(data)
-@extend_schema(tags=['Routes & Cities'])
-class Routes(APIView):
-    def post(self, request):
-        date = request.data.get('date')
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        tickets = Route.objects.filter(
-            date=date,
-            depcity=depcity,
-            descity=descity
-        )
-        if tickets.exists():
-            ticket_data = [{'id': ticket.id, 'depcity': ticket.depcity, 'descity': ticket.descity, 'date': ticket.date, 'plate_no': ticket.plate_no} for ticket in tickets]
-            return Response({'tickets': ticket_data}, status=status.HTTP_200_OK)
-        else:
-            return Response({'error': 'There are no booked tickets for this route.'}, status=status.HTTP_404_NOT_FOUND)
-    def get(self, request):
-        return Response({'error': 'Use POST to retrieve tickets.'}, status=status.HTTP_400_BAD_REQUEST)
-"""
 
 
 
 
 
-"""
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import Bus
-@extend_schema(tags=['Bus & Driver Management'])
-class BusDeleteView(APIView):
-    def post(self, request):
-        plate_no = request.data.get('plate_no')
-        side_no = request.data.get('sideno')
-        no_seats = request.data.get('no_seats')
-        try:
-            bus = Bus.objects.get(plate_no=plate_no, sideno=side_no, no_seats=no_seats)
-            bus.delete()
-            return Response({'success': 'Bus deleted successfully.'}, status=status.HTTP_200_OK)
-        except Bus.DoesNotExist:
-            return Response({'error': 'No bus found for deletion.'}, status=status.HTTP_404_NOT_FOUND)
-    def get(self, request):
-        buses = Bus.objects.all()
-        bus_data = [{'plate_no': bus.plate_no, 'sideno': bus.sideno, 'no_seats': bus.no_seats} for bus in buses]
-        return Response({'buses': bus_data}, status=status.HTTP_200_OK)
-"""
+
+
+
+
+
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8220,53 +4643,12 @@ class CommentDeleteViews(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-"""
-def commentdelete(request):
-    comments = Feedback.objects.all()  # Always fetch comments at the start
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        name = request.POST.get('name')
-        phone = request.POST.get('phone')
-        try:
-            comment = Feedback.objects.get(name=name, email=email, phone=phone)
-            comment.delete()
-            comments = Feedback.objects.all()
-            return render(request, 'users/commentdelet.html', {
-                'comments': comments,
-                'success': 'Comment Deleted Successfully'
-            })
-        except Feedback.DoesNotExist:
-            return render(request, 'users/commentdelet.html', {
-                'comments': comments,
-                'error': 'There is No comment for Deletion'
-            })
-    return render(request, 'users/commentdelet.html', {'comments': comments})
-"""
 
 
 
 
-"""
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import Feedback
-class CommentDeleteView(APIView):
-    def post(self, request):
-        email = request.data.get('email')
-        name = request.data.get('name')
-        phone = request.data.get('phone')
-        try:
-            comment = Feedback.objects.get(name=name, email=email, phone=phone)
-            comment.delete()
-            return Response({'success': 'Comment deleted successfully.'}, status=status.HTTP_200_OK)
-        except Feedback.DoesNotExist:
-            return Response({'error': 'No comment found for deletion.'}, status=status.HTTP_404_NOT_FOUND)
-    def get(self, request):
-        comments = Feedback.objects.all()
-        comment_data = [{'name': comment.name, 'email': comment.email, 'phone': comment.phone} for comment in comments]
-        return Response({'comments': comment_data}, status=status.HTTP_200_OK)
-"""
+
+
 
 
 
@@ -8759,28 +5141,7 @@ class ChangeBusesViews(APIView):
 
 
 
-"""
-from django.shortcuts import render
-from rest_framework import generics, status
-from rest_framework.response import Response
-from .models import City
-from .serializers import CitySerializer
-@extend_schema(tags=['Routes & Cities'])
-class CityInsertView(generics.GenericAPIView):
-    queryset = City.objects.all()
-    serializer_class = CitySerializer
-    def get(self, request, *args, **kwargs):
-        return render(request, 'users/city.html')
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            depcity = serializer.validated_data['depcity']
-            if City.objects.filter(depcity__iexact=depcity).exists():
-                return Response({'error': 'City already exists.'}, status=status.HTTP_400_BAD_REQUEST)
-            serializer.save()
-            return Response({'success': 'City registered successfully.'}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-"""
+
 
 
 
@@ -8982,34 +5343,7 @@ def updatebus(request):
 
 
 
-"""
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import Bus, Worker, Route
-@extend_schema(tags=['Bus & Driver Management'])
-class UpdateBusView(APIView):
-    def post(self, request):
-        plate_no = request.data.get('plate_no')
-        new_sideno = request.data.get('new_sideno')
-        no_seats = request.data.get('no_seats')
-        try:
-            bus = Bus.objects.get(plate_no=plate_no)
-            if Bus.objects.filter(sideno=new_sideno).exists():
-                return Response({'error': 'This side number already exists.'}, status=status.HTTP_400_BAD_REQUEST)
-            bus.sideno = new_sideno
-            bus.no_seats = no_seats
-            bus.save()
-            Worker.objects.filter(plate_no=plate_no).update(side_no=new_sideno)
-            Route.objects.filter(plate_no=plate_no).update(side_no=new_sideno)
-            return Response({'success': 'Side number changed successfully!'}, status=status.HTTP_200_OK)
-        except Bus.DoesNotExist:
-            return Response({'error': 'Bus not found.'}, status=status.HTTP_404_NOT_FOUND)
-    def get(self, request):
-        buses = Bus.objects.all()
-        bus_data = [{'plate_no': bus.plate_no, 'sideno': bus.sideno, 'no_seats': bus.no_seats} for bus in buses]
-        return Response({'buses': bus_data}, status=status.HTTP_200_OK)
-"""
+
 
 
 
@@ -9100,93 +5434,10 @@ from django.shortcuts import redirect
 def changebus_redirect(request):
     return redirect('changebus')  # Replace with the actual URL name
 
-""""
-from django.utils import timezone
-from datetime import timedelta
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import Bus, Route, Ticket, Buschange
-@extend_schema(tags=['Bus & Driver Management'])
-class ChangeBusView(APIView):
-    def post(self, request):
-        depcity = request.data.get('depcity')
-        descity = request.data.get('descity')
-        date = request.data.get('date')
-        side_no = request.data.get('side_no')
-        new_side_no = request.data.get('new_side_no')
-        try:
-            if Route.objects.filter(side_no=new_side_no, date=date).exists():
-                return Response({'error': 'This bus is already reserved for this route on this date.'}, status=status.HTTP_400_BAD_REQUEST)
-            bus_info = Bus.objects.filter(sideno=new_side_no).first()
-            if not bus_info:
-                return Response({'error': 'Invalid side number selected.'}, status=status.HTTP_400_BAD_REQUEST)
-            new_plate_no = bus_info.plate_no
-            total_seats = int(bus_info.no_seats) if bus_info.no_seats else 0
-            booked_tickets_count = Ticket.objects.filter(date=date, side_no=side_no).count()
-            if booked_tickets_count > total_seats:
-                return Response({'error': 'Not enough seats available for this change.'}, status=status.HTTP_400_BAD_REQUEST)
-            route = Route.objects.get(depcity=depcity, descity=descity, date=date, side_no=side_no)
-            route.plate_no = new_plate_no
-            route.side_no = new_side_no
-            route.save()
-            if depcity.strip() == "Addisababa":
-                reciprocal_route = Route.objects.get(
-                    depcity=descity,
-                    descity=depcity,
-                    date=(timezone.datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d'),
-                    side_no=side_no
-                )
-                reciprocal_route.plate_no = new_plate_no
-                reciprocal_route.side_no = new_side_no
-                reciprocal_route.save()
-            Ticket.objects.filter(date=date, side_no=side_no).update(plate_no=new_plate_no, side_no=new_side_no)
-            booked_tickets = Ticket.objects.filter(date=date, side_no=new_side_no).values_list('no_seat', flat=True)
-            booked_seats = set(int(seat) for seat in booked_tickets)
-            booked_seat_count = len(booked_seats)
-            remaining_seats = total_seats - booked_seat_count
-            unbooked_seats = [seat for seat in range(1, total_seats + 1) if seat not in booked_seats]
-            Buschange.objects.create(
-                plate_no=side_no,
-                side_no=side_no,
-                new_plate_no=new_plate_no,
-                new_side_no=new_side_no,
-                date=date,
-                depcity=depcity,
-                descity=descity
-            )
-            return Response({
-                'success': 'Bus changed successfully.',
-                'total_seats': total_seats,
-                'booked_seats': booked_seat_count,
-                'remaining_seats': remaining_seats,
-                'unbooked_seats': unbooked_seats,
-                'booked_seat_list': booked_seats
-            }, status=status.HTTP_200_OK)
-        except Route.DoesNotExist:
-            return Response({'error': "The specified route does not exist."}, status=status.HTTP_404_NOT_FOUND)
-    def get(self, request):
-        routes = Route.objects.all()
-        buses = Bus.objects.all()
-        return Response({'routes': [route.to_dict() for route in routes], 'buses': [bus.to_dict() for bus in buses]}, status=status.HTTP_200_OK)
-"""
 
 
-"""
-def changebuses(request):
-    des = City.objects.all()
-    if request.method == 'POST':
-        date = request.POST.get('date')
-        buschanges = Buschange.objects.filter(date=date)
-        if buschanges.exists():
-            count = Buschange.objects.filter(date=date).count()
-            return render(request, 'users/busschange.html', {'count': count, 'buschange': buschanges})  # Pass the queryset
-        else:
-            buschanges = Buschange.objects.all()
-            buschanges_count = buschanges.count()
-            return render(request, 'users/index.html', {'buschanges_count': buschanges_count, 'error1': "NO change buses for this travel date!",'des': des})
-    return render(request, 'users/index.html')
-"""
+
+
 
 
 
@@ -9240,86 +5491,7 @@ class ChangePasswordViews(LoginRequiredMixin, APIView):
             return Response(context, status=status_code)
 
 
-"""
-from django.contrib.auth import update_session_auth_hash, authenticate
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from drf_spectacular.utils import extend_schema
-from .serializers import ChangePasswordSerializer, PasswordStatusSerializer
 
-class ChangesPasswordView(APIView):
-    # Enforces the 403 Forbidden status for unauthorized users
-    permission_classes = [IsAuthenticated]
-    serializer_class = ChangePasswordSerializer
-
-    @extend_schema(
-        summary="Get password change page",
-        responses={200: None}, # Indicates HTML response
-        description="Renders the profile/password change HTML template for browsers."
-    )
-    def get(self, request):
-        return render(request, 'users/profile2.html', {})
-
-    @extend_schema(
-        summary="Change user password",
-        request=ChangePasswordSerializer,
-        responses={
-            200: PasswordStatusSerializer,
-            400: PasswordStatusSerializer
-        },
-        description="Updates password. Supports both JSON API and HTML Form submissions."
-    )
-    def post(self, request):
-        # Use the serializer for input validation (Objective 4 compliance)
-        serializer = ChangePasswordSerializer(data=request.data)
-
-        # Check if the requester is a browser (expecting HTML)
-        is_html = 'text/html' in request.META.get('HTTP_ACCEPT', '')
-
-        if not serializer.is_valid():
-            if is_html:
-                for field, errors in serializer.errors.items():
-                    messages.error(request, f"{field}: {errors[0]}")
-                return redirect('change_password')
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # Get validated data
-        current_password = serializer.validated_data.get('currentPassword')
-        new_password = serializer.validated_data.get('newPassword')
-        re_new_password = serializer.validated_data.get('reNewPassword')
-
-        # Authentication Check
-        user = authenticate(username=request.user.username, password=current_password)
-
-        error_msg = None
-        if user is None:
-            error_msg = "Current password is incorrect."
-        elif new_password != re_new_password:
-            error_msg = "New passwords do not match."
-        elif current_password == new_password:
-            error_msg = "New password cannot be the same as the current password."
-
-        if error_msg:
-            if is_html:
-                messages.error(request, error_msg)
-                return redirect('change_password')
-            return Response({"error": error_msg}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Success Logic: Apply Hardening
-        request.user.set_password(new_password)
-        request.user.save()
-        update_session_auth_hash(request, request.user) # Important: Prevents session logout
-
-        if is_html:
-            messages.success(request, "Your password has been changed successfully.")
-            return redirect('profile')
-
-        return Response({"message": "Password updated successfully."}, status=status.HTTP_200_OK)
-"""
 
 
 
@@ -9334,10 +5506,7 @@ from drf_spectacular.utils import extend_schema
 from .serializers import ChangePasswordSerializer, PasswordStatusSerializer
 
 class ChangePasswordView(APIView):
-    """
-    Handles Wedehager transport system password changes.
-    Complies with Ethiopian and International cybersecurity standards.
-    """
+    
     permission_classes = [IsAuthenticated]
     serializer_class = ChangePasswordSerializer
 
@@ -9399,146 +5568,13 @@ class ChangePasswordView(APIView):
 
 
 
-"""
-from django.contrib.auth import update_session_auth_hash, authenticate
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from drf_spectacular.utils import extend_schema
-from .serializers import ChangePasswordSerializer, PasswordStatusSerializer
-
-class ChangePasswordView(APIView):
-    
-    Handles Wedehager transport system password changes.
-    Complies with Ethiopian and International cybersecurity standards.
-    
-    permission_classes = [IsAuthenticated]
-    serializer_class = ChangePasswordSerializer
-
-    @extend_schema(
-        summary="Get password change page",
-        responses={200: None}, # Documentation for HTML render
-        description="Renders the profile/password change HTML template."
-    )
-    def get(self, request):
-        return render(request, 'users/profile2.html', {})
-
-    @extend_schema(
-        summary="Change user password",
-        request=ChangePasswordSerializer,
-        responses={
-            200: PasswordStatusSerializer,
-            400: PasswordStatusSerializer,
-            403: PasswordStatusSerializer
-        },
-        description="Updates password. Supports both JSON API and HTML Form submissions."
-    )
-    def post(self, request):
-        serializer = ChangePasswordSerializer(data=request.data)
-        is_html = 'text/html' in request.META.get('HTTP_ACCEPT', '')
-
-        # 1. Validate Input (ISO 27002 Integrity)
-        if not serializer.is_valid():
-            if is_html:
-                for field, errors in serializer.errors.items():
-                    messages.error(request, f"{field}: {errors[0]}")
-                return redirect('change_password')
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # 2. Verify Identity (Proclamation 808/2013)
-        current_pw = serializer.validated_data.get('currentPassword')
-        user = authenticate(username=request.user.username, password=current_pw)
-
-        if user is None:
-            msg = "Current password is incorrect."
-            if is_html:
-                messages.error(request, msg)
-                return redirect('change_password')
-            return Response({"detail": msg}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 3. Apply Change & Save
-        request.user.set_password(serializer.validated_data['newPassword'])
-        request.user.save()
-        update_session_auth_hash(request, request.user) # Keeps user logged in
-
-        if is_html:
-            messages.success(request, "Password updated successfully.")
-            return redirect('profile')
-
-        # 4. JSON Response (Matches Serializer exactly to pass Schema Audit)
-        return Response(
-            {"detail": "Password updated successfully."},
-            status=status.HTTP_200_OK
-        )
-"""
 
 
 
 
 
-"""
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth import update_session_auth_hash, authenticate
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from drf_spectacular.utils import extend_schema
-from .serializers import ChangePasswordSerializer
 
-#@extend_schema(tags=['User Profile'])
-@extend_schema(request=ChangePasswordSerializer)
-class ChangesPasswordView(LoginRequiredMixin, APIView):
-    #serializer_class = ChangePasswordSerializer
 
-    #@extend_schema(summary="Get password change page")
-
-    @extend_schema(
-        summary="Change user password",
-        request=ChangePasswordSerializer,# Fix for ChangePasswordView (Line 6367)
-        responses={200: dict, 400: dict}
-    )
-
-    def get(self, request):
-        return render(request, 'users/profile2.html', {})
-
-    @extend_schema(
-        summary="Change user password",
-        request=ChangePasswordSerializer,# Fix for ChangePasswordView (Line 6367)
-        responses={200: dict, 400: dict}
-    )
-    #@extend_schema(request=ChangePasswordSerializer) # Link the input data
-    def post(self, request):
-        current_password = request.data.get('currentPassword')
-        new_password = request.data.get('newPassword')
-        re_new_password = request.data.get('reNewPassword')
-        user = authenticate(username=request.user.username, password=current_password)
-
-        error_msg = None
-
-        if user is None:
-            error_msg = "Current password is incorrect."
-        elif new_password != re_new_password:
-            error_msg = "New passwords do not match."
-        elif current_password == new_password:
-            error_msg = "New password cannot be the same as the current password."
-        if error_msg:
-            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                messages.error(request, error_msg)
-                return redirect('change_password')
-            return Response({"error": error_msg}, status=status.HTTP_400_BAD_REQUEST)
-        user.set_password(new_password)
-        user.save()
-        update_session_auth_hash(request, user)  # Keep the user logged in
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            messages.success(request, "Your password has been changed successfully.")
-            return redirect('profile') # Make sure 'profile' URL name exists
-        return Response({"message": "Password updated successfully."}, status=status.HTTP_200_OK)
-"""
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import update_session_auth_hash, authenticate

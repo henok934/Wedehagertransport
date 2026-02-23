@@ -184,7 +184,7 @@ urlpatterns = [
     path('Selectbus/', SelectBusView.as_view(), name='Selectbus'),
     # API URL (Used for mobile or external apps)
     path('api/Selectbus/', SelectBusView.as_view(), name='api_selectbus'),
-    path('api/ticket/', TicketBookingViews.as_view(), name='api_ticket'),
+    #path('api/ticket/', TicketBookingViews.as_view(), name='ticket'),
     #path('book-ticket/', TicketBookingView.as_view(), name='book_ticket'),
     #path('api/tickets/', get_tickets, name='get_tickets'),  # New endpoint for retrieving tickets
     
