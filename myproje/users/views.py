@@ -941,13 +941,12 @@ class GetTicketViews(APIView):
         if ticket:
             plate_no = ticket.plate_no
             level = Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else None
-            qr_code_path = ticket.generate_qr_code()  # Assuming generate_qr_code is a method of Ticket
-
+            #qr_code_path = ticket.generate_qr_code()  # Assuming generate_qr_code is a method of Ticket
             if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
                 return render(request, 'users/tickets.html', {
                     'ticket': ticket,
                     'level': level,
-                    'qr_code_path': qr_code_path
+                    #'qr_code_path': qr_code_path
                 })
             else:
                 serialized_ticket = TSerializer(ticket)
@@ -2579,7 +2578,7 @@ class MainPageView(View):  # Your view class
 
 
 
-
+"""
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import render
@@ -2651,6 +2650,234 @@ class TicketBookingViews(APIView):
         except Exception as e:
             return Response({"error": f"Database Error: {str(e)}"}, status=500)
 
+"""
+
+
+"""
+from django.db import transaction
+from django.core.mail import send_mail
+from django.conf import settings
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import render
+from .models import Ticket, City, Bus
+from .serializers import TicketSerializer
+
+class TicketBookingViews(APIView):
+    serializer_class = TicketSerializer
+
+    def get_user_from_session(self, request):
+        # Helper to get the logged-in username from session
+        return request.user.username if request.user.is_authenticated else "Guest"
+
+    def post(self, request):
+        # 1. Identify the worker/booker
+        current_username = self.get_user_from_session(request)
+        
+        data = request.data
+        firstnames = data.getlist('firstname[]')
+        prices = data.getlist('price[]')
+        no_seats = data.getlist('no_seat[]')
+        
+        if not firstnames:
+            return Response({"error": "No passenger data"}, status=400)
+
+        tickets_created = []
+        total_price = 0
+
+        try:
+            with transaction.atomic():
+                for i in range(len(firstnames)):
+                    # Calculate price safely
+                    try:
+                        indiv_price = float(prices[i]) if i < len(prices) else 0.0
+                    except (ValueError, TypeError):
+                        indiv_price = 0.0
+                    
+                    total_price += indiv_price
+
+                    # 2. Create the Ticket instance
+                    ticket = Ticket.objects.create(
+                        firstname=firstnames[i],
+                        lastname=data.getlist('lastname[]')[i] if i < len(data.getlist('lastname[]')) else "",
+                        phone=data.getlist('phone[]')[i] if i < len(data.getlist('phone[]')) else "",
+                        email=data.getlist('email[]')[i] if i < len(data.getlist('email[]')) else "",
+                        no_seat=no_seats[i] if i < len(no_seats) else "",
+                        depcity=data.getlist('depcity[]')[0] if data.getlist('depcity[]') else "",
+                        descity=data.getlist('descity[]')[0] if data.getlist('descity[]') else "",
+                        date=data.getlist('date[]')[0] if data.getlist('date[]') else "",
+                        price=str(indiv_price),
+                        side_no=data.getlist('side_no[]')[0] if data.getlist('side_no[]') else "",
+                        plate_no=data.getlist('plate_no[]')[0] if data.getlist('plate_no[]') else "",
+                        # Tag with the worker's username
+                        username=current_username 
+                    )
+                    tickets_created.append(ticket)
+
+                    # 3. Safe Email Sending
+                    if ticket.email:
+                        try:
+                            send_mail(
+                                'Ticket Confirmation',
+                                f"Hello {ticket.firstname}, your PNR is {ticket.pnr}.",
+                                settings.EMAIL_HOST_USER,
+                                [ticket.email],
+                                fail_silently=True
+                            )
+                        except Exception:
+                            pass # Prevent email errors from crashing the 500
+
+            # 4. Redirection Logic
+            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                context = {
+                    'tickets': tickets_created,
+                    'total_price': total_price,
+                    'success': 'Booking completed successfully!'
+                }
+                
+                # If the booker is a Guest, go to payment.
+                # If the booker is a Worker/Registered User, go to tickets.
+                if current_username == "Guest":
+                    return render(request, 'users/payment.html', context)
+                else:
+                    return render(request, 'users/myticket.html', context)
+
+            # API Response
+            return Response(TicketSerializer(tickets_created, many=True).data, status=201)
+
+        except Exception as e:
+            # This catches DB errors or logic errors
+            return Response({"error": str(e)}, status=500)
+    """
+
+
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import render
+from .models import Ticket, City, Bus
+from .serializers import TicketSerializer
+from django.db import transaction
+from django.conf import settings
+from rest_framework import status
+from drf_spectacular.utils import extend_schema
+@extend_schema(tags=['Booking & Tickets'])
+class TicketBookingViews(APIView):
+    serializer_class = TicketSerializer
+
+    def get(self, request):
+        des = City.objects.all()
+        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+            return render(request, 'users/ticket.html', {'des': des})
+        return Response({'cities': [city.depcity for city in des]})
+
+    def post(self, request):
+        # 1. Collect all data
+        firstnames = request.data.getlist('firstname[]')
+        emails = request.data.getlist('email[]')
+        genders = request.data.getlist('gender[]')
+        lastnames = request.data.getlist('lastname[]')
+        phones = request.data.getlist('phone[]')
+        prices = request.data.getlist('price[]')
+        side_nos = request.data.getlist('side_no[]')
+        plate_nos = request.data.getlist('plate_no[]')
+        usernames = request.data.getlist('username[]')
+        dates = request.data.getlist('date[]')
+        no_seats = request.data.getlist('no_seat[]')
+        depcitys = request.data.getlist('depcity[]')
+        descitys = request.data.getlist('descity[]')
+        prs = request.data.getlist('pr[]')
+        das = request.data.getlist('da[]')
+
+        # 2. Set Default Variables (Critical to fix 500 error)
+        tickets = []
+        level = "Standard"
+        name = "Bus Service"
+        used_seats = set()
+
+        try:
+            total_price = sum(float(price) for price in prices if price)
+            if prs:
+                total_price -= sum(float(p) for p in prs if p)
+        except (ValueError, TypeError):
+            total_price = 0
+
+        # Determine loop length
+        min_length = min(
+            len(firstnames), len(lastnames), len(emails), len(genders),
+            len(phones), len(prices), len(side_nos), len(plate_nos),
+            len(depcitys), len(descitys), len(dates), len(no_seats)
+        )
+
+        # 3. Database Transaction
+        try:
+            with transaction.atomic():
+                for i in range(min_length):
+                    current_seat = no_seats[i]
+
+                    # Seat duplication check
+                    if current_seat in used_seats:
+                        return Response({'error': f'Seat {current_seat} duplicated.'}, status=400)
+                    used_seats.add(current_seat)
+
+                    # Bus info lookup
+                    bus_info = Bus.objects.filter(sideno=side_nos[i]).first()
+                    if bus_info:
+                        level = bus_info.level
+                        name = bus_info.name
+
+                    # Create Ticket
+                    ticket_instance = Ticket.objects.create(
+                        firstname=firstnames[i],
+                        lastname=lastnames[i],
+                        phone=phones[i],
+                        price=prices[i],
+                        side_no=side_nos[i],
+                        plate_no=plate_nos[i],
+                        date=dates[i],
+                        email=emails[i],
+                        gender=genders[i],
+                        depcity=depcitys[i],
+                        descity=descitys[i],
+                        username=usernames[i] if i < len(usernames) else "Guest",
+                        no_seat=current_seat,
+                    )
+                    tickets.append(ticket_instance)
+                # Delete old records if prs exists
+                if prs:
+                    for i in range(min_length):
+                        Ticket.objects.filter(firstname=firstnames[i], date=das[i]).delete()
+            # 4. Response Logic
+            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                context = {
+                    'success': 'Ticket(s) booked successfully!',
+                    'tickets': tickets,
+                    'total_price': total_price,
+                    'level': level,
+                    'name': name
+                }
+                # Guest vs Worker check
+                if not usernames or usernames[0] == "Guest" or usernames[0] == "":
+                    return render(request, 'users/payment.html', context)
+                else:
+                    return render(request, 'users/myticket.html', context)
+            serializer = TicketSerializer(tickets, many=True)
+            return Response({'message': 'Booking successful.', 'tickets': serializer.data}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            # This will show you the ACTUAL error message on Render instead of a generic 500
+            return Response({'error': str(e)}, status=500)
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2662,11 +2889,10 @@ from django.shortcuts import render
 from .models import Ticket, City, Bus
 from .serializers import TicketSerializer
 from django.db import transaction
-from django.core.mail import send_mail
+#from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework import status
 from drf_spectacular.utils import extend_schema
-
 @extend_schema(tags=['Booking & Tickets'])
 class TicketBookingViews(APIView):
     serializer_class = TicketSerializer
@@ -2741,9 +2967,11 @@ class TicketBookingViews(APIView):
                 ticket_instance = Ticket(**validated_data)
                 ticket_instance.save() 
                 tickets.append(ticket_instance)
+        
                 subject = 'Ticket Booking Confirmation'
                 message = f"Hello {validated_data['firstname']}, your booking for {validated_data['depcity']} to {validated_data['descity']} Travel Date {validated_data['date']} Seat Number {validated_data['no_seat']} plate number {validated_data['plate_no']} Side Number {validated_data['side_no']} is confirmed."
                 send_mail(subject, message, settings.EMAIL_HOST_USER, [validated_data['email']], fail_silently=True)
+                
             if prs:
                 for i in range(min_length):
                     Ticket.objects.filter(firstname=firstnames[i], date=das[i]).delete()
@@ -2763,8 +2991,8 @@ class TicketBookingViews(APIView):
                 })
         serializer = TicketSerializer(tickets, many=True)
         return Response({'message': 'Booking successful.', 'tickets': serializer.data}, status=status.HTTP_201_CREATED)
-"""
 
+"""
 
 
 
