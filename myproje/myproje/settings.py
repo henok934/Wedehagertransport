@@ -75,7 +75,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'myproje.wsgi.application'
 
 # 4. DATABASE (PostgreSQL)
-"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -86,9 +85,9 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+
 """
-
-
 import dj_database_url
 import os
 
@@ -109,8 +108,19 @@ else:
             'PORT': '5432',
         }
     }
+import dj_database_url
+import os
+DATABASES = {
+    'default': dj_database_url.config(
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True
+    )
+}
 
 SECURE_SSL_REDIRECT = False
+"""
+
 
 """
 DATABASES = {
