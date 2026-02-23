@@ -75,6 +75,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'myproje.wsgi.application'
 
 # 4. DATABASE (PostgreSQL)
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -85,6 +86,7 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+"""
 
 
 """
@@ -122,14 +124,13 @@ SECURE_SSL_REDIRECT = False
 """
 
 
-"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-"""
+
 # 5. AUTHENTICATION & USERS
 AUTH_USER_MODEL = 'users.CustomUser'
 AUTHENTICATION_BACKENDS = [

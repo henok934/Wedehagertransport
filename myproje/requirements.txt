@@ -32,7 +32,8 @@ mod==0.3.0
 # Removed Parser
 # Removed Parser
 path.py==12.5.0
-Pillow==11.1.0  # or Pillow==9.0.1 if needed
+pillow>=9.1.0
+#Pillow==11.1.0  # or Pillow==9.0.1 if needed
 pkg1==0.0.3
 protobuf==4.25.8
 pyOpenSSL==25.0.0  # or pyOpenSSL==21.0.0 if needed

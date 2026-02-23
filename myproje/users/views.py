@@ -2580,10 +2580,82 @@ class MainPageView(View):  # Your view class
 
 
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import render
+from django.db import transaction
+from django.core.mail import send_mail
+from django.conf import settings
+from rest_framework import status
+from .models import Ticket, City, Bus
+from .serializers import TicketSerializer
+
+class TicketBookingViews(APIView):
+    serializer_class = TicketSerializer
+
+    def post(self, request):
+        data = request.data
+        # Safely extract lists
+        firstnames = data.getlist('firstname[]')
+        emails = data.getlist('email[]')
+        no_seats = data.getlist('no_seat[]')
+        
+        if not firstnames:
+            return Response({"error": "No passenger data found"}, status=400)
+
+        tickets_created = []
+        
+        try:
+            with transaction.atomic():
+                for i in range(len(firstnames)):
+                    # Extract data for this specific passenger
+                    ticket_data = {
+                        'firstname': firstnames[i],
+                        'lastname': data.getlist('lastname[]')[i] if i < len(data.getlist('lastname[]')) else "",
+                        'email': emails[i] if i < len(emails) else "",
+                        'phone': data.getlist('phone[]')[i] if i < len(data.getlist('phone[]')) else "",
+                        'no_seat': no_seats[i] if i < len(no_seats) else "",
+                        'price': data.getlist('price[]')[i] if i < len(data.getlist('price[]')) else "0",
+                        'depcity': data.getlist('depcity[]')[0] if data.getlist('depcity[]') else "",
+                        'descity': data.getlist('descity[]')[0] if data.getlist('descity[]') else "",
+                        'date': data.getlist('date[]')[0] if data.getlist('date[]') else "",
+                        'side_no': data.getlist('side_no[]')[0] if data.getlist('side_no[]') else "",
+                        'plate_no': data.getlist('plate_no[]')[0] if data.getlist('plate_no[]') else "",
+                        'username': data.getlist('username[]')[0] if data.getlist('username[]') else "Guest",
+                    }
+
+                    # Create ticket
+                    new_ticket = Ticket.objects.create(**ticket_data)
+                    tickets_created.append(new_ticket)
+
+                    # Send Email (Wrapped in try/except to prevent 500 Error)
+                    try:
+                        send_mail(
+                            'Booking Confirmation',
+                            f"Hi {new_ticket.firstname}, your PNR is {new_ticket.pnr}.",
+                            settings.EMAIL_HOST_USER,
+                            [new_ticket.email],
+                            fail_silently=False,
+                        )
+                    except Exception as e:
+                        # Log the error but let the transaction continue
+                        print(f"Email Error: {e}")
+
+            # Return success
+            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                return render(request, 'users/myticket.html', {'tickets': tickets_created, 'success': True})
+            
+            serializer = TicketSerializer(tickets_created, many=True)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": f"Database Error: {str(e)}"}, status=500)
 
 
 
 
+
+"""
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import render
@@ -2691,7 +2763,7 @@ class TicketBookingViews(APIView):
                 })
         serializer = TicketSerializer(tickets, many=True)
         return Response({'message': 'Booking successful.', 'tickets': serializer.data}, status=status.HTTP_201_CREATED)
-
+"""
 
 
 

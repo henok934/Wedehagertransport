@@ -98,8 +98,69 @@ class Service_fee(models.Model):
 # 3. TRANSACTIONAL & FEEDBACK MODELS
 # ==========================================
 
+import uuid
+import random
+import string
+import qrcode
+import base64
+from io import BytesIO
+from django.db import models
+from django.utils import timezone
+
+class Ticket(models.Model):
+    ticket_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    pnr = models.CharField(max_length=10, unique=True, editable=False)
+    firstname = models.CharField(max_length=50, null=True, blank=True)
+    lastname = models.CharField(max_length=50, null=True, blank=True)
+    phone = models.CharField(max_length=50, null=True, blank=True)
+    depcity = models.CharField(max_length=50, null=True, blank=True)
+    descity = models.CharField(max_length=50, null=True, blank=True)
+    date = models.CharField(max_length=50, null=True, blank=True)
+    email = models.CharField(max_length=100, null=True, blank=True)
+    gender = models.CharField(max_length=20, null=True, blank=True)
+    no_seat = models.CharField(max_length=20, null=True, blank=True)
+    price = models.CharField(max_length=50, null=True, blank=True)
+    side_no = models.CharField(max_length=20, null=True, blank=True)
+    plate_no = models.CharField(max_length=20, null=True, blank=True)
+    username = models.CharField(max_length=50, null=True, blank=True, default="Guest")
+    booked_time = models.DateTimeField(default=timezone.now)
+    qr_code = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.firstname} - {self.pnr}"
+
+    def save(self, *args, **kwargs):
+        # 1. Generate Unique PNR
+        if not self.pnr:
+            while True:
+                new_pnr = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                if not Ticket.objects.filter(pnr=new_pnr).exists():
+                    self.pnr = new_pnr
+                    break
+        
+        # 2. Save first to get ID
+        super().save(*args, **kwargs)
+
+        # 3. Generate QR Code (only if not already there)
+        if not self.qr_code:
+            qr_data = f"PNR: {self.pnr}\nPassenger: {self.firstname} {self.lastname}\nSeat: {self.no_seat}"
+            qr = qrcode.QRCode(version=1, box_size=5, border=2)
+            qr.add_data(qr_data)
+            qr.make(fit=True)
+            
+            img = qr.make_image(fill_color="black", back_color="white")
+            buffer = BytesIO()
+            img.save(buffer, format='PNG')
+            encoded_qr = 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode()
+            
+            # Update without triggering save() recursion
+            Ticket.objects.filter(pk=self.pk).update(qr_code=encoded_qr)
+            self.qr_code = encoded_qr
 
 
+
+
+"""
 import uuid
 import random
 import string
@@ -177,6 +238,11 @@ class Ticket(models.Model):
         # Use update() to save the qr_code without triggering save() again (avoids recursion)
         self.__class__.objects.filter(ticket_id=self.ticket_id).update(qr_code=generated_qr)
         self.qr_code = generated_qr  # Update current instance
+"""
+
+
+
+
 
 """
 import uuid
