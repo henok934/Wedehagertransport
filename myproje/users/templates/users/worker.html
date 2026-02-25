@@ -236,7 +236,9 @@
                             <select name="city" class="form-control form-control-modern" required>
                                 <option value="" disabled selected>Select Hub</option>
                                 {% for item in des %}
+				{% if item.depcity not in "Addisababa" %}
                                 <option value="{{ item.depcity }}">{{ item.depcity }}</option>
+				 {% endif %}
                                 {% endfor %}
                             </select>
                         </div>

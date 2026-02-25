@@ -865,38 +865,12 @@ class Changepassenger(APIView):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import render
 from .models import Ticket, City, Bus
 from .serializers import TSerializer
-
 class GetTicketViews(APIView):
     def get(self, request):
         des = City.objects.all()
@@ -1202,7 +1176,6 @@ class Books(APIView):
 
         # Calculate Total Price for Today
         total_today = self.get_daily_total(username)
-
         if city in ['Kality', 'Ayertena', 'Lamberet', 'Autobustera']:
             city = 'Addisababa'
 
@@ -1561,10 +1534,22 @@ class SeeView(APIView):
                 return None
         return None
 
+    def get_daily_total(self, username):
+        today = timezone.now().date()
+        total = Ticket.objects.filter(
+            username=username,
+            booked_time__date=today
+        ).annotate(
+            price_as_float=Cast('price', FloatField())
+        ).aggregate(total=Sum('price_as_float'))['total'] or 0
+        return total
+
     @extend_schema(summary="Check current worker session")
     def get(self, request):
         buschanges_count = Buschange.objects.count()
         worker = self.get_user_from_session(request)
+        username = worker.username.strip()
+        total_today = self.get_daily_total(username)
 
         if not worker:
             return Response({'error': 'User session not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -1591,6 +1576,10 @@ class SeeView(APIView):
 
         buschanges_count = Buschange.objects.count()
         routes = Route.objects.filter(depcity=depcity, descity=descity, date=date, plate_no=plate_no)
+        
+        worker = self.get_user_from_session(request)
+        username = worker.username.strip()
+        total_today = self.get_daily_total(username)
 
         if not routes.exists():
             return Response({'error': 'No Travel found'}, status=status.HTTP_404_NOT_FOUND)
@@ -1621,12 +1610,9 @@ class SeeView(APIView):
             return render(request, 'users/booker.html', {
                 **response_data,
                 'username': worker.username if worker else "Guest",
-                'buschanges_count': buschanges_count
+                'buschanges_count': buschanges_count, 'total_today': total_today
             })
         return Response(response_data, status=status.HTTP_200_OK)
-
-
-
 
 
 from drf_spectacular.utils import extend_schema
@@ -2615,7 +2601,183 @@ class MainPageView(View):  # Your view class
 
 
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import render
+from .models import Ticket, City, Bus, Route
+from .serializers import TicketSerializer, RouteSerializer
+from django.db import transaction
+from django.db.models import Q
+from django.conf import settings
+from rest_framework import status
+from drf_spectacular.utils import extend_schema
+@extend_schema(tags=['Booking & Tickets'])
+class TicketBookingViews(APIView):
+    serializer_class = TicketSerializer
 
+    def get(self, request):
+        des = City.objects.all()
+        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+            return render(request, 'users/ticket.html', {'des': des})
+        return Response({'cities': [city.depcity for city in des]})
+
+    def post(self, request):
+        # 1. Retrieve Data Lists
+        firstnames = request.data.getlist('firstname[]')
+        emails = request.data.getlist('email[]')
+        genders = request.data.getlist('gender[]')
+        lastnames = request.data.getlist('lastname[]')
+        phones = request.data.getlist('phone[]')
+        prices = request.data.getlist('price[]')
+        side_nos = request.data.getlist('side_no[]')
+        plate_nos = request.data.getlist('plate_no[]')
+        usernames = request.data.getlist('username[]')
+        dates = request.data.getlist('date[]')
+        no_seats = request.data.getlist('no_seat[]')
+        depcitys = request.data.getlist('depcity[]')
+        descitys = request.data.getlist('descity[]')
+        prs = request.data.getlist('pr[]')
+        das = request.data.getlist('da[]')
+
+        # 2. Total Price Calculation
+        try:
+            total_price = sum(float(price) for price in prices)
+            if prs:
+                total_price -= sum(float(p) for p in prs)
+        except (ValueError, TypeError):
+            total_price = 0
+
+        min_length = min(
+            len(firstnames), len(lastnames), len(emails), len(genders),
+            len(phones), len(prices), len(side_nos), len(plate_nos),
+            len(depcitys), len(descitys), len(dates), len(no_seats)
+        )
+
+        used_seats = set()
+        tickets = []
+
+        try:
+            with transaction.atomic():
+                for i in range(min_length):
+                    current_seat = no_seats[i]
+                    current_date = dates[i]
+                    alt_date = das[i] if i < len(das) else None
+                    dep = depcitys[i]
+                    des = descitys[i]
+                    plate = plate_nos[i]
+
+                    # --- ROUTE & BUS VALIDATION ---
+                    routes = Route.objects.filter(depcity=dep, descity=des, date=current_date, plate_no=plate)
+                    bus = Bus.objects.filter(plate_no=plate).first()
+                    
+                    if not bus:
+                        return Response({'error': f'Bus {plate} not found'}, status=404)
+
+                    # --- PREPARE ERROR CONTEXT ---
+                    total_seats = int(bus.no_seats)
+                    booked_in_db = Ticket.objects.filter(depcity=dep, descity=des, date=current_date, plate_no=plate).values_list('no_seat', flat=True)
+                    booked_seats_list = list(set(int(s) for s in booked_in_db if s))
+                    unbooked_seats = [s for s in range(1, total_seats + 1) if s not in booked_seats_list]
+
+                    error_context = {
+                        'des': City.objects.all(),
+                        'routes': RouteSerializer(routes, many=True).data,
+                        'levels': bus.level,
+                        'remaining_seats': total_seats - len(booked_seats_list),
+                        'unbooked_seats': unbooked_seats,
+                        'booked_seats': booked_seats_list,
+                        'all_seats': list(range(1, total_seats + 1)),
+                    }
+
+                    # --- VALIDATION: SEAT SELECTION ---
+                    if current_seat in used_seats or int(current_seat) in booked_seats_list:
+                        error_msg = f'Seat {current_seat} already selected.'
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            return render(request, 'users/ticket.html', error_context, status=400)
+                        return Response({'error': error_msg}, status=400)
+
+                    # --- VALIDATION: ALREADY BOOKED CHECK ---
+                    already_booked = Ticket.objects.filter(
+                        firstname=firstnames[i],
+                        lastname=lastnames[i],
+                        depcity=dep,
+                        descity=des
+                    ).filter(Q(date=current_date) | Q(date=alt_date)).exists()
+
+                    if already_booked:
+                        error_msg = f"Person already booked: {firstnames[i]} {lastnames[i]} for {current_date}{f' or {alt_date}' if alt_date and alt_date != 'None' else ''}."
+                        #error_msg = f"Person already booked: {firstnames[i]} {lastnames[i]} for {current_date} or {alt_date}."
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            return render(request, 'users/ticket.html', error_context, status=400)
+                        return Response({'error': error_msg}, status=400)
+
+                    # --- SAVE TICKET ---
+                    used_seats.add(current_seat)
+                    bus_info = Bus.objects.filter(sideno=side_nos[i]).first()
+                    level = bus_info.level if bus_info else "Unknown"
+                    name = bus_info.name if bus_info else "Unknown"
+
+                    validated_data = {
+                        'firstname': firstnames[i],
+                        'lastname': lastnames[i],
+                        'phone': phones[i],
+                        'price': prices[i],
+                        'side_no': side_nos[i],
+                        'plate_no': plate,
+                        'date': current_date,
+                        'email': emails[i],
+                        'gender': genders[i],
+                        'depcity': dep,
+                        'descity': des,
+                        'username': usernames[i] if i < len(usernames) else "",
+                        'no_seat': current_seat,
+                    }
+                    ticket_instance = Ticket.objects.create(**validated_data)
+                    tickets.append(ticket_instance)
+
+                # --- DELETE EXISTING TICKETS FOR DA ---
+                if prs:
+                    for i in range(min_length):
+                        if i < len(das):
+                            Ticket.objects.filter(
+                                firstname=firstnames[i],
+                                lastname=lastnames[i],
+                                date=das[i],
+                                depcity=depcitys[i],
+                                descity=descitys[i]
+                            ).delete()
+
+            # --- SUCCESS RESPONSES ---
+            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                context = {
+                    'success': 'Ticket(s) booked successfully!',
+                    'tickets': tickets,
+                    'total_price': total_price,
+                    'level': level,
+                    'name': name
+                }
+                if not usernames or not usernames[0]:
+                    return render(request, 'users/payment.html', context)
+                else:
+                    return render(request, 'users/myticket.html', context)
+
+            serializer = TicketSerializer(tickets, many=True)
+            return Response({'message': 'Booking successful.', 'tickets': serializer.data}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+
+
+
+
+"""
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import render
@@ -2670,10 +2832,73 @@ class TicketBookingViews(APIView):
         with transaction.atomic():
             for i in range(min_length):
                 current_seat = no_seats[i]
+                current_date = dates[i]
+                alt_date = das[i] if i < len(das) else None
+                dep = depcitys[i]
+                des = descitys[i]
+                date = dates[i]
+                pri = prices[i]
+                plate = plate_nos[i]
+                seat_num = no_seats[i]
+                alt_date = das[i] if i < len(das) else None
+
+                routes = Route.objects.filter(depcity=dep, descity=des, date=date, plate_no=plate)
+                
+                
+                if not routes.exists():
+                    error_msg = f"No route found for {dep} to {des} on {date}."
+                    return render(request, 'users/ticket.html', {'des': City.objects.all(), 'error': error_msg}, status=400)
+                
+
+                routes = Route.objects.filter(
+                    depcity=depcitys[i],
+                    descity=descitys[i],
+                    date=dates[i],
+                    price=prices[i],
+                    plate_no=plate_nos[i]
+                )
+                
+
+
+                bus = Bus.objects.filter(plate_no=plate).first()
+                if not bus:
+                    return Response({'error': f'Bus {plate} not found'}, status=404)
+                    levels = bus.level
+                    total_seats = int(bus.no_seats)
+
+
+                total_seats = int(bus.no_seats)
+                booked_in_db = Ticket.objects.filter(depcity=dep, descity=des, date=date, plate_no=plate).values_list('no_seat', flat=True)
+                booked_seats_list = list(set(int(s) for s in booked_in_db if s))
+                unbooked_seats = [s for s in range(1, total_seats + 1) if s not in booked_seats_list]
+
+                error_context = {
+                        'des': City.objects.all(),
+                        'routes': RouteSerializer(routes, many=True).data,
+                        'levels': bus.level,
+                        'remaining_seats': total_seats - len(booked_seats_list),
+                        'unbooked_seats': unbooked_seats,
+                        'booked_seats': booked_seats_list,
+                        'all_seats': list(range(1, total_seats + 1)),
+                    }
                 if current_seat in used_seats:
                     if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-                        return render(request, 'users/ticket.html', {'des': City.objects.all(), 'error': f'Seat {current_seat} already selected.'}, status=400)
+                        return render(request, 'users/ticket.html', {'des': City.objects.all(), 'error': f'Seat {current_seat} already selected.', 'routes': routes}, error_context, status=400)
                     return Response({'error': f'Seat {current_seat} already selected.'}, status=400)
+                
+                already_booked = Ticket.objects.filter(
+                        firstname=firstnames[i],
+                        lastname=lastnames[i],
+                        depcity=depcitys[i],
+                        descity=descitys[i]
+                    ).filter(
+                        Q(date=current_date) | Q(date=alt_date)
+                    ).exists()
+                if already_booked:
+                    error_msg = f"Person already booked: {firstnames[i]} {lastnames[i]} for {current_date} or {alt_date}."
+                    if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                        return render(request, 'users/ticket.html', {'des': City.objects.all(), 'error': error_msg, 'routes': routes, error_context}, status=400)
+                    return Response({'error': error_msg}, status=400)
 
                 used_seats.add(current_seat)
                 bus_info = Bus.objects.filter(sideno=side_nos[i]).first()
@@ -2698,11 +2923,11 @@ class TicketBookingViews(APIView):
                 ticket_instance.save() 
                 tickets.append(ticket_instance)
                 
-                """
+                
                 subject = 'Ticket Booking Confirmation'
                 message = f"Hello {validated_data['firstname']}, your booking for {validated_data['depcity']} to {validated_data['descity']} Travel Date {validated_data['date']} Seat Number {validated_data['no_seat']} plate number {validated_data['plate_no']} Side Number {validated_data['side_no']} is confirmed."
                 send_mail(subject, message, settings.EMAIL_HOST_USER, [validated_data['email']], fail_silently=True)
-                """
+                
 
             if prs:
                 for i in range(min_length):
@@ -2730,6 +2955,9 @@ class TicketBookingViews(APIView):
                 })
         serializer = TicketSerializer(tickets, many=True)
         return Response({'message': 'Booking successful.', 'tickets': serializer.data}, status=status.HTTP_201_CREATED)
+"""
+
+
 
 
 
@@ -2894,6 +3122,51 @@ class Totalballance(APIView):
                 return render(request, 'users/ballance.html', {'error': 'No dates provided', 'des': City.objects.all()})
             return Response({'error': 'No dates provided'}, status=status.HTTP_400_BAD_REQUEST)
 
+
+        # 1. Sum up ticket prices by username
+        totals_by_username = {}
+        tickets = Ticket.objects.filter(booked_time__date__in=dates)
+
+        for ticket in tickets:
+            username = ticket.username if ticket.username else "Selfbook"
+            try:
+                price = float(ticket.price)
+            except (ValueError, TypeError):
+                continue
+            totals_by_username[username] = totals_by_username.get(username, 0) + price
+
+        # 2. Get Worker details (City, Firstname, Lastname, Phone)
+        workers = Worker.objects.filter(username__in=totals_by_username.keys())
+
+        # Build a map of all worker info
+        worker_info = {
+            worker.username: {
+                'city': worker.city,
+                'fname': worker.fname,
+                'lname': worker.lname,
+                'phone': worker.phone
+            } for worker in workers
+        }
+
+        # 3. Combine everything into total_data
+        total_data = {
+            username: {
+                'total_balance': total,
+                'city': worker_info.get(username, {}).get('city', 'Self'),
+                'fname': worker_info.get(username, {}).get('fname', 'N/A'),
+                'lname': worker_info.get(username, {}).get('lname', ''),
+                'phone': worker_info.get(username, {}).get('phone', 'N/A'),
+            }
+            for username, total in totals_by_username.items() if total > 0
+        }
+
+        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+            return render(request, 'users/totalballance.html', {'totals': total_data})
+
+        return Response({'totals': total_data}, status=status.HTTP_200_OK)
+
+
+"""
         totals_by_username = {}
         tickets = Ticket.objects.filter(booked_time__date__in=dates)
 
@@ -2920,28 +3193,7 @@ class Totalballance(APIView):
             return render(request, 'users/totalballance.html', {'totals': total_data})
             
         return Response({'totals': total_data}, status=status.HTTP_200_OK)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+"""
 
 
 from rest_framework import status
@@ -3995,25 +4247,7 @@ from rest_framework import status
 from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
 from .models import Route, City
-from .serializers import (RoutSerializer, TicketSearchRequestSerializer, RouteResponseSerializer, CityListSerializer
-)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+from .serializers import (RoutSerializer, TicketSearchRequestSerializer, RouteResponseSerializer, CityListSerializer)
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -4106,9 +4340,12 @@ class UpdateTicketViews(APIView):
         error_message = None
         try:
             if new_date:
-                incoming_date = datetime.strptime(new_date, '%Y-%m-%d').date()
-                if incoming_date < timezone.now().date():
-                    error_message = "Error: Past dates are not allowed."
+                if new_date == da:
+                    error_message = "Error: The new date is the same as your current travel date."
+                else:
+                    incoming_date = datetime.strptime(new_date, '%Y-%m-%d').date()
+                    if incoming_date < timezone.now().date():
+                        error_message = "Error: Past dates are not allowed."
             else:
                 error_message = "Please select a new travel date."
         except ValueError:
@@ -4154,7 +4391,7 @@ class UpdateTicketViews(APIView):
             'error': error_message,
             'ticket': ticket,
             'level': Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else None,
-            'qr_code_path': ticket.generate_qr_code() if ticket else None
+            #'qr_code_path': ticket.generate_qr_code() if ticket else None
         }
 
         if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
@@ -4603,13 +4840,6 @@ class RouteDeleteViews(APIView):
         }, status=res_status)
 
 
-
-
-
-
-
-
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -4617,7 +4847,6 @@ from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
 from .models import Ticket, Route
 from .serializers import TicketSearchSerializer, TickSerializer # Assuming TickSerializer exists
-
 @extend_schema(tags=['Booking & Tickets'])
 class ShowTicketsViews(APIView):
     serializer_class = TicketSearchSerializer
@@ -4659,21 +4888,7 @@ class ShowTicketsViews(APIView):
         else:
             return Response(
                 {"error": "There are no booked tickets for this route"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-
-
-
-
-
-
-
-
-
-
-
-
+                status=status.HTTP_404_NOT_FOUND)
 
 
 from rest_framework.views import APIView
@@ -4790,14 +5005,6 @@ class CommentDeleteViews(APIView):
                 status=res_status
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
-
-
-
 
 
 

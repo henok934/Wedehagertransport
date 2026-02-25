@@ -111,6 +111,8 @@
     </div>
 </nav>
 
+
+<!--
 <div class="table-container-fixed">
     <div class="content-card">
         <h6 class="text-center font-weight-bold mb-4" style="color: var(--brand-navy);">Total Balance Detail Inquiry</h6>
@@ -149,6 +151,149 @@
         </div>
     </div>
 </div>
+-->
+
+<!--
+<div class="table-responsive">
+    <table class="styled-table">
+        <thead>
+            <tr>
+                <th style="width: 40px;">No.</th>
+                <th>Username</th>
+                <th>Full Name</th>
+                <th>Phone Number</th>
+                <th>City</th>
+                <th>Total (ETB)</th>
+                <th style="text-align: center;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if totals %}
+                {% for username, data in totals.items %}
+                    <tr>
+                        <td style="text-align: center;">{{ forloop.counter }}</td>
+                        <td><strong>@{{ username }}</strong></td>
+                        <td>{{ data.fname }} {{ data.lname }}</td>
+                        <td>{{ data.phone }}</td>
+                        <td>{{ data.city }}</td>
+                        <td><strong>{{ data.total_balance|floatformat:2 }}</strong></td>
+                        <td style="text-align: center;">
+                            <span class="status-badge">
+                                <i class="fas fa-check-circle mr-1"></i> Active
+                            </span>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 20px;">
+                        No tickets found for the selected criteria.
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+-->
+
+
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="styled-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px; text-align: center;">#</th>
+                    <th class="col-username">Username</th>
+                    <th class="col-name">Full Name</th>
+                    <th class="col-phone">Phone</th>
+                    <th class="col-city">City</th>
+                    <th class="col-total">Total (ETB)</th>
+                    <th class="col-status" style="text-align: center;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if totals %}
+                    {% for username, data in totals.items %}
+                        <tr>
+                            <td style="text-align: center; color: #888;">{{ forloop.counter }}</td>
+                            <td><span style="color: #4a5568; font-weight: 600;">@{{ username }}</span></td>
+                            <td>{{ data.fname }} {{ data.lname }}</td>
+                            <td>{{ data.phone }}</td>
+                            <td>{{ data.city }}</td>
+                            <td style="font-family: 'Courier New', monospace; font-weight: bold;">
+                                {{ data.total_balance|floatformat:2 }}
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="status-badge">
+                                    <i class="fas fa-check-circle"></i> Active
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 30px; color: #a0aec0;">
+                            <i class="fas fa-folder-open" style="display: block; font-size: 24px; margin-bottom: 10px;"></i>
+                            No data found for the selected criteria.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<style>
+/* Container to limit width and center the table */
+.table-container {
+    max-width: 900px; /* Limits how wide the table can grow */
+    margin: 20px auto; /* Centers the table on the page */
+    padding: 0 15px;
+}
+
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    background: #fff;
+}
+
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px; /* Slightly smaller font for compactness */
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.styled-table thead tr {
+    background-color: #f8f9fa;
+    color: #333;
+    text-align: left;
+    border-bottom: 2px solid #edf2f7;
+}
+
+.styled-table th, .styled-table td {
+    padding: 10px 12px; /* Reduced padding to save space */
+    white-space: nowrap; /* Prevents text wrapping */
+}
+
+/* Specific column widths for balance */
+.col-username { width: 15%; }
+.col-name { width: 25%; }
+.col-phone { width: 15%; }
+.col-city { width: 15%; }
+.col-total { width: 15%; }
+.col-status { width: 10%; }
+
+/* Status Badge refinement */
+.status-badge {
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 20px;
+    background: #e6fffa;
+    color: #2c7a7b;
+    font-weight: 600;
+}
+</style>
 
 <footer class="footer-main">
     <div class="container">

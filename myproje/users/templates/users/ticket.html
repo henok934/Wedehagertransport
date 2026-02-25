@@ -68,8 +68,146 @@
 
         .footer-dark { background: var(--brand-navy); color: white; padding: 40px 0; text-align: center; }
     </style>
+    <style>
+        /* Toast Container */
+        .intl-error-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            border-left: 5px solid #e74c3c;
+            z-index: 9999; /* Higher z-index to stay on top */
+            min-width: 300px;
+            animation: slideIn 0.3s ease-out;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Content Layout */
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .toast-icon {
+            color: #e74c3c;
+            font-size: 24px;
+        }
+
+        .toast-message {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toast-title {
+            font-weight: 700;
+            color: #333;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .toast-desc {
+            color: #666;
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 18px;
+            margin-left: auto;
+            padding: 0;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toast-close:hover { color: #333; }
+
+        /* Progress Bar Animation */
+        .toast-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            width: 100%;
+            background: #eee;
+            border-bottom-right-radius: 8px;
+            overflow: hidden;
+        }
+
+        .toast-progress::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #e74c3c;
+            animation: progress 5s linear forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes progress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+    </style>
 </head>
 <body>
+<script>
+function closeError() {
+    const errorToast = document.getElementById('djangoError');
+    if (errorToast) {
+        // Smooth fade out
+        errorToast.style.opacity = '0';
+        errorToast.style.transform = 'translateX(20px)';
+        errorToast.style.transition = '0.3s all ease';
+        
+        // Remove from layout after animation
+        setTimeout(() => {
+            errorToast.style.display = 'none';
+            // Optional: errorToast.remove(); 
+        }, 300);
+    }
+}
+
+// Auto-close logic
+document.addEventListener('DOMContentLoaded', function() {
+    const toast = document.getElementById('djangoError');
+    if (toast) {
+        // Automatically close after 5 seconds
+        setTimeout(closeError, 5000);
+    }
+});
+</script>
+
+{% if error %}
+<div class="intl-error-toast show" id="djangoError">
+    <div class="toast-content">
+        <div class="toast-icon"><i class="fas fa-circle-exclamation"></i></div>
+        <div class="toast-message">
+            <span class="toast-title">System Message</span>
+            <span class="toast-desc">{{ error }}</span>
+        </div>
+        <button class="toast-close" onclick="closeError()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="toast-progress"></div>
+</div>
+{% endif %}
+
+
+
 
 <nav class="navbar-main navbar navbar-expand-lg">
     <div class="container">

@@ -133,7 +133,7 @@
     <select name="descity" class="form-control form-control-premium" required>
         <option value="">Choose Destination...</option>
         {% for depcity in des %}
-            {% if depcity.depcity != city %}
+            {% if depcity.depcity != city and depcity.depcity != 'Asko' and depcity.depcity != 'Lamberet' and depcity.depcity != 'Kality' and depcity.depcity != 'Ayertena' and depcity.depcity != 'Autobustera' %}
                 <option value="{{ depcity.depcity }}">{{ depcity.depcity }}</option>
             {% endif %}
         {% endfor %}
