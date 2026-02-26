@@ -915,11 +915,19 @@ class GetTicketViews(APIView):
         if ticket:
             plate_no = ticket.plate_no
             level = Bus.objects.filter(plate_no=plate_no).values_list('level', flat=True).first() if plate_no else None
+
+            username = ticket.username
+            fname = Worker.objects.filter(username=username).values_list('fname', flat=True).first() if username else ""
+            lname = Worker.objects.filter(username=username).values_list('lname', flat=True).first() if username else ""
+            #fname = Worker.objects.filter(username = username).values_list('fname', flat=True).first() if username else self
+            #lname = Worker.objects.filter(username = username).values_list('lname', flat=True).first() if username else self
             #qr_code_path = ticket.generate_qr_code()  # Assuming generate_qr_code is a method of Ticket
             if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
                 return render(request, 'users/tickets.html', {
                     'ticket': ticket,
                     'level': level,
+                    'fname': fname,
+                    'lname': lname,
                     #'qr_code_path': qr_code_path
                 })
             else:
@@ -2230,14 +2238,6 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 from .models import Bus, Sc
 from .serializers import BusSerializer
-
-
-
-
-
-
-
-
 @extend_schema(tags=['Bus & Driver Management'])
 class MyBus(generics.GenericAPIView):
     # Fixed: Should point to Bus, not Route
@@ -2406,30 +2406,16 @@ class ShowTicketsViewss(APIView):
         return Response({"error": "No tickets found"}, status=404)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 from rest_framework import generics, status
 from rest_framework.response import Response
 from django.shortcuts import render
 from .models import Bus, Sc
 from .serializers import BusSerializer
 from drf_spectacular.utils import extend_schema
-
 @extend_schema(tags=['Bus & Driver Management'])
 class BusInsertView(generics.GenericAPIView):
     queryset = Bus.objects.all()
     serializer_class = BusSerializer
-
     def get_user_from_session(self, request):
         user_id = request.session.get('sc_id')
         if user_id:
@@ -2526,7 +2512,6 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from drf_spectacular.utils import extend_schema
-
 from .models import CustomUser, Sc
 from .serializers import ForgotPasswordSerializer
 @extend_schema(tags=['Authentication'])
@@ -2567,10 +2552,8 @@ class ForgotPasswordView(APIView):
                     [user_obj.email],
                     fail_silently=False,
                 )
-
                 success_msg = "Password reset successfully. Check your email."
                 return self._handle_response(request, {"message": success_msg}, status.HTTP_200_OK)
-
             except Exception as e:
                 error_message = "Email could not be sent. Please contact support."
         else:
@@ -2600,7 +2583,7 @@ class MainPageView(View):  # Your view class
 
 
 
-
+"""
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import render
@@ -2717,8 +2700,11 @@ class TicketBookingViews(APIView):
                     used_seats.add(current_seat)
                     bus_info = Bus.objects.filter(sideno=side_nos[i]).first()
                     level = bus_info.level if bus_info else "Unknown"
-                    name = bus_info.name if bus_info else "Unknown"
+                    #name = bus_info.name if bus_info else "Unknown"
 
+                    #username = ticket.username
+                    #fname = Worker.objects.filter(username=username).values_list('fname', flat=True).first() if username else ""
+                    #lname = Worker.objects.filter(username=username).values_list('lname', flat=True).first() if username else ""
                     validated_data = {
                         'firstname': firstnames[i],
                         'lastname': lastnames[i],
@@ -2736,6 +2722,14 @@ class TicketBookingViews(APIView):
                     }
                     ticket_instance = Ticket.objects.create(**validated_data)
                     tickets.append(ticket_instance)
+                    if usernames[i]:
+                        # This looks up the worker details for the person logged in
+                        worker = Worker.objects.filter(username=usernames[i]).first()
+                        fname = worker.fname if worker else ""
+                        lname = worker.lname if worker else ""
+                    else:
+                        fname = ""
+                        lname = ""
 
                 # --- DELETE EXISTING TICKETS FOR DA ---
                 if prs:
@@ -2756,7 +2750,9 @@ class TicketBookingViews(APIView):
                     'tickets': tickets,
                     'total_price': total_price,
                     'level': level,
-                    'name': name
+                    'name': name,
+                    'fname': fname,
+                    'lname': lname
                 }
                 if not usernames or not usernames[0]:
                     return render(request, 'users/payment.html', context)
@@ -2768,6 +2764,679 @@ class TicketBookingViews(APIView):
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+"""
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import render
+from .models import Ticket, City, Bus, Route, Worker  # Ensure Worker is imported
+from .serializers import TicketSerializer, RouteSerializer
+from django.db import transaction
+from django.db.models import Q
+from django.conf import settings
+from rest_framework import status
+from drf_spectacular.utils import extend_schema
+
+@extend_schema(tags=['Booking & Tickets'])
+class AgentBookingViews(APIView):
+    serializer_class = TicketSerializer
+
+    def get(self, request):
+        des = City.objects.all()
+        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+            return render(request, 'users/booker.html', {'des': des})
+        return Response({'cities': [city.depcity for city in des]})
+
+    def post(self, request):
+        # 1. Retrieve Data Lists
+        firstnames = request.data.getlist('firstname[]')
+        emails = request.data.getlist('email[]')
+        genders = request.data.getlist('gender[]')
+        lastnames = request.data.getlist('lastname[]')
+        phones = request.data.getlist('phone[]')
+        prices = request.data.getlist('price[]')
+        side_nos = request.data.getlist('side_no[]')
+        plate_nos = request.data.getlist('plate_no[]')
+        usernames = request.data.getlist('username[]')
+        dates = request.data.getlist('date[]')
+        no_seats = request.data.getlist('no_seat[]')
+        depcitys = request.data.getlist('depcity[]')
+        descitys = request.data.getlist('descity[]')
+        prs = request.data.getlist('pr[]')
+        das = request.data.getlist('da[]')
+
+        # 2. Total Price Calculation
+        try:
+            total_price = sum(float(price) for price in prices)
+            if prs:
+                total_price -= sum(float(p) for p in prs)
+        except (ValueError, TypeError):
+            total_price = 0
+
+        min_length = min(
+            len(firstnames), len(lastnames), len(emails), len(genders),
+            len(phones), len(prices), len(side_nos), len(plate_nos),
+            len(depcitys), len(descitys), len(dates), len(no_seats)
+        )
+
+        used_seats = set()
+        tickets = []
+        fname = ""
+        lname = ""
+        level = "Standard"
+
+        try:
+            with transaction.atomic():
+                for i in range(min_length):
+                    current_seat = no_seats[i]
+                    current_date = dates[i]
+                    alt_date = das[i] if i < len(das) else None
+                    dep = depcitys[i]
+                    des = descitys[i]
+                    plate = plate_nos[i]
+                    current_user = usernames[i] if i < len(usernames) else ""
+
+                    # --- ROUTE & BUS VALIDATION ---
+                    routes = Route.objects.filter(depcity=dep, descity=des, date=current_date, plate_no=plate)
+                    bus = Bus.objects.filter(plate_no=plate).first()
+
+                    if not bus:
+                        return Response({'error': f'Bus {plate} not found'}, status=404)
+
+                    # --- PREPARE ERROR CONTEXT ---
+                    total_seats = int(bus.no_seats)
+                    booked_in_db = Ticket.objects.filter(depcity=dep, descity=des, date=current_date, plate_no=plate).values_list('no_seat', flat=True)
+                    booked_seats_list = list(set(int(s) for s in booked_in_db if s))
+                    unbooked_seats = [s for s in range(1, total_seats + 1) if s not in booked_seats_list]
+
+                    error_context = {
+                        'des': City.objects.all(),
+                        'routes': RouteSerializer(routes, many=True).data,
+                        'levels': bus.level,
+                        'remaining_seats': total_seats - len(booked_seats_list),
+                        'unbooked_seats': unbooked_seats,
+                        'booked_seats': booked_seats_list,
+                        'all_seats': list(range(1, total_seats + 1)),
+                    }
+
+                    # --- VALIDATION: SEAT SELECTION ---
+                    if current_seat in used_seats or int(current_seat) in booked_seats_list:
+                        error_msg = f'Seat {current_seat} already selected.'
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            return render(request, 'users/booker.html', error_context, status=400)
+                        return Response({'error': error_msg}, status=400)
+
+                    # --- VALIDATION: ALREADY BOOKED CHECK ---
+                    already_booked = Ticket.objects.filter(
+                        firstname=firstnames[i],
+                        lastname=lastnames[i],
+                        depcity=dep,
+                        descity=des
+                    ).filter(Q(date=current_date) | Q(date=alt_date)).exists()
+
+                    if already_booked:
+                        error_msg = f"Person already booked: {firstnames[i]} {lastnames[i]} for {current_date}{f' or {alt_date}' if alt_date and alt_date != 'None' else ''}."
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            return render(request, 'users/booker.html', error_context, status=400)
+                        return Response({'error': error_msg}, status=400)
+
+                    # --- SAVE TICKET ---
+                    used_seats.add(current_seat)
+                    level = bus.level if bus else "Standard"
+
+                    validated_data = {
+                        'firstname': firstnames[i],
+                        'lastname': lastnames[i],
+                        'phone': phones[i],
+                        'price': prices[i],
+                        'side_no': side_nos[i],
+                        'plate_no': plate,
+                        'date': current_date,
+                        'email': emails[i],
+                        'gender': genders[i],
+                        'depcity': dep,
+                        'descity': des,
+                        'username': current_user,
+                        'no_seat': current_seat,
+                    }
+                    
+                    ticket_instance = Ticket.objects.create(**validated_data)
+                    tickets.append(ticket_instance)
+
+                    # Lookup Agent Name for the context
+                    if current_user:
+                        worker = Worker.objects.filter(username=current_user).first()
+                        if worker:
+                            fname = worker.fname
+                            lname = worker.lname
+
+                # --- DELETE EXISTING TICKETS FOR DA (Transfer Logic) ---
+                if prs:
+                    for i in range(min_length):
+                        if i < len(das):
+                            Ticket.objects.filter(
+                                firstname=firstnames[i],
+                                lastname=lastnames[i],
+                                date=das[i],
+                                depcity=depcitys[i],
+                                descity=descitys[i]
+                            ).delete()
+
+            # --- SUCCESS RESPONSES ---
+            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                context = {
+                    'success': 'Ticket(s) booked successfully!',
+                    'tickets': tickets,
+                    'total_price': total_price,
+                    'level': level,
+                    'fname': fname,
+                    'lname': lname
+                }
+                if not usernames or not usernames[0]:
+                    return render(request, 'users/payment.html', context)
+                else:
+                    return render(request, 'users/myticket.html', context)
+
+            serializer = TicketSerializer(tickets, many=True)
+            return Response({'message': 'Booking successful.', 'tickets': serializer.data}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import render
+from .models import Ticket, City, Bus, Route, Worker
+from .serializers import TicketSerializer, RouteSerializer
+from django.db import transaction
+from django.db.models import Q, Sum, FloatField
+from django.db.models.functions import Cast
+from django.utils import timezone
+from django.conf import settings
+from rest_framework import status
+from drf_spectacular.utils import extend_schema
+
+@extend_schema(tags=['Booking & Tickets'])
+class TicketBookingViews(APIView):
+    serializer_class = TicketSerializer
+
+    def get_user_from_session(self, request):
+        user_id = request.session.get('worker_id')
+        if user_id:
+            try:
+                return Worker.objects.get(id=user_id)
+            except Worker.DoesNotExist:
+                return None
+        return None
+
+    def get_daily_total(self, username):
+        today = timezone.now().date()
+        total = Ticket.objects.filter(
+            username=username,
+            booked_time__date=today
+        ).annotate(
+            price_as_float=Cast('price', FloatField())
+        ).aggregate(total=Sum('price_as_float'))['total'] or 0
+        return total
+
+    def get(self, request):
+        des = City.objects.all()
+        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+            return render(request, 'users/ticket.html', {'des': des})
+        return Response({'cities': [city.depcity for city in des]})
+
+    def post(self, request):
+        # 1. Retrieve Data Lists
+        firstnames = request.data.getlist('firstname[]')
+        emails = request.data.getlist('email[]')
+        genders = request.data.getlist('gender[]')
+        lastnames = request.data.getlist('lastname[]')
+        phones = request.data.getlist('phone[]')
+        prices = request.data.getlist('price[]')
+        side_nos = request.data.getlist('side_no[]')
+        plate_nos = request.data.getlist('plate_no[]')
+        usernames = request.data.getlist('username[]')
+        dates = request.data.getlist('date[]')
+        no_seats = request.data.getlist('no_seat[]')
+        depcitys = request.data.getlist('depcity[]')
+        descitys = request.data.getlist('descity[]')
+        prs = request.data.getlist('pr[]')
+        das = request.data.getlist('da[]')
+
+        # 2. Total Price Calculation
+        try:
+            total_price = sum(float(price) for price in prices)
+            if prs:
+                total_price -= sum(float(p) for p in prs)
+        except (ValueError, TypeError):
+            total_price = 0
+
+        min_length = min(
+            len(firstnames), len(lastnames), len(emails), len(genders),
+            len(phones), len(prices), len(side_nos), len(plate_nos),
+            len(depcitys), len(descitys), len(dates), len(no_seats)
+        )
+
+        used_seats = set()
+        tickets = []
+        fname = ""
+        lname = ""
+        level = "Standard"
+
+        try:
+            with transaction.atomic():
+                for i in range(min_length):
+                    current_seat = no_seats[i]
+                    current_date = dates[i]
+                    alt_date = das[i] if i < len(das) else None
+                    dep = depcitys[i]
+                    des = descitys[i]
+                    plate = plate_nos[i]
+                    current_user = usernames[i] if i < len(usernames) else ""
+
+                    # --- ROUTE & BUS VALIDATION ---
+                    routes = Route.objects.filter(depcity=dep, descity=des, date=current_date, plate_no=plate)
+                    bus = Bus.objects.filter(plate_no=plate).first()
+
+                    if not bus:
+                        return Response({'error': f'Bus {plate} not found'}, status=404)
+
+                    # --- PREPARE ERROR CONTEXT ---
+                    total_seats = int(bus.no_seats)
+                    booked_in_db = Ticket.objects.filter(depcity=dep, descity=des, date=current_date, plate_no=plate).values_list('no_seat', flat=True)
+                    booked_seats_list = list(set(int(s) for s in booked_in_db if s))
+                    unbooked_seats = [s for s in range(1, total_seats + 1) if s not in booked_seats_list]
+
+                    error_context = {
+                        'des': City.objects.all(),
+                        'routes': RouteSerializer(routes, many=True).data,
+                        'levels': bus.level,
+                        'remaining_seats': total_seats - len(booked_seats_list),
+                        'unbooked_seats': unbooked_seats,
+                        'booked_seats': booked_seats_list,
+                        'all_seats': list(range(1, total_seats + 1)),
+                    }
+
+                    # --- VALIDATION: SEAT SELECTION ---
+                    seat_is_taken = current_seat in used_seats or int(current_seat) in booked_seats_list
+
+                    if seat_is_taken:
+                        error_msg = f'Seat {current_seat} already selected.'
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            if current_user:
+                                #worker_obj = Worker.objects.filter(username=current_user).first()
+                                #error_context['username'] = worker_obj
+                                error_context['username'] = current_user
+                                error_context['total_today'] = self.get_daily_total(current_user)
+                                return render(request, 'users/booker.html', error_context, status=400)
+                            else:
+                                return render(request, 'users/ticket.html', error_context, status=400)
+                        return Response({'error': error_msg}, status=400)
+
+                    # --- VALIDATION: ALREADY BOOKED CHECK ---
+                    already_booked = Ticket.objects.filter(
+                        firstname=firstnames[i],
+                        lastname=lastnames[i],
+                        depcity=dep,
+                        descity=des
+                    ).filter(Q(date=current_date) | Q(date=alt_date)).exists()
+
+                    if already_booked:
+                        error_msg = f"Person already booked: {firstnames[i]} {lastnames[i]} for {current_date}{f' or {alt_date}' if alt_date and alt_date != 'None' else ''}."
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            if current_user:
+                                #worker_obj = Worker.objects.filter(username=current_user).first()
+                                #error_context['username'] = worker_obj
+                                error_context['username'] = current_user
+                                error_context['total_today'] = self.get_daily_total(current_user)
+                                return render(request, 'users/booker.html', error_context, status=400)
+                            else:
+                                return render(request, 'users/ticket.html', error_context, status=400)
+                        return Response({'error': error_msg}, status=400)
+
+                    # --- SAVE TICKET ---
+                    used_seats.add(current_seat)
+                    level = bus.level if bus else "Standard"
+
+                    validated_data = {
+                        'firstname': firstnames[i],
+                        'lastname': lastnames[i],
+                        'phone': phones[i],
+                        'price': prices[i],
+                        'side_no': side_nos[i],
+                        'plate_no': plate,
+                        'date': current_date,
+                        'email': emails[i],
+                        'gender': genders[i],
+                        'depcity': dep,
+                        'descity': des,
+                        'username': current_user,
+                        'no_seat': current_seat,
+                    }
+
+                    ticket_instance = Ticket.objects.create(**validated_data)
+                    tickets.append(ticket_instance)
+
+                    if current_user:
+                        worker = Worker.objects.filter(username=current_user).first()
+                        if worker:
+                            fname = worker.fname
+                            lname = worker.lname
+
+                # --- DELETE EXISTING TICKETS FOR DA (Transfer Logic) ---
+                if prs:
+                    for i in range(min_length):
+                        if i < len(das):
+                            Ticket.objects.filter(
+                                firstname=firstnames[i],
+                                lastname=lastnames[i],
+                                date=das[i],
+                                depcity=depcitys[i],
+                                descity=descitys[i]
+                            ).delete()
+
+            # --- SUCCESS RESPONSES ---
+            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                context = {
+                    'success': 'Ticket(s) booked successfully!',
+                    'tickets': tickets,
+                    'total_price': total_price,
+                    'level': level,
+                    'fname': fname,
+                    'lname': lname
+                }
+                if not usernames or not usernames[0]:
+                    return render(request, 'users/payment.html', context)
+                else:
+                    return render(request, 'users/myticket.html', context)
+            serializer = TicketSerializer(tickets, many=True)
+            return Response({'message': 'Booking successful.', 'tickets': serializer.data}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import render
+from .models import Ticket, City, Bus, Route, Worker  # Ensure Worker is imported
+from .serializers import TicketSerializer, RouteSerializer
+from django.db import transaction
+from django.db.models import Q
+from django.conf import settings
+from rest_framework import status
+from drf_spectacular.utils import extend_schema
+
+@extend_schema(tags=['Booking & Tickets'])
+class TicketBookingViews(APIView):
+    serializer_class = TicketSerializer
+
+    def get(self, request):
+        des = City.objects.all()
+        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+            return render(request, 'users/ticket.html', {'des': des})
+        return Response({'cities': [city.depcity for city in des]})
+
+    def post(self, request):
+        # 1. Retrieve Data Lists
+        firstnames = request.data.getlist('firstname[]')
+        emails = request.data.getlist('email[]')
+        genders = request.data.getlist('gender[]')
+        lastnames = request.data.getlist('lastname[]')
+        phones = request.data.getlist('phone[]')
+        prices = request.data.getlist('price[]')
+        side_nos = request.data.getlist('side_no[]')
+        plate_nos = request.data.getlist('plate_no[]')
+        usernames = request.data.getlist('username[]')
+        dates = request.data.getlist('date[]')
+        no_seats = request.data.getlist('no_seat[]')
+        depcitys = request.data.getlist('depcity[]')
+        descitys = request.data.getlist('descity[]')
+        prs = request.data.getlist('pr[]')
+        das = request.data.getlist('da[]')
+
+        # 2. Total Price Calculation
+        try:
+            total_price = sum(float(price) for price in prices)
+            if prs:
+                total_price -= sum(float(p) for p in prs)
+        except (ValueError, TypeError):
+            total_price = 0
+
+        min_length = min(
+            len(firstnames), len(lastnames), len(emails), len(genders),
+            len(phones), len(prices), len(side_nos), len(plate_nos),
+            len(depcitys), len(descitys), len(dates), len(no_seats)
+        )
+
+        used_seats = set()
+        tickets = []
+        fname = ""
+        lname = ""
+        level = "Standard"
+
+        try:
+            with transaction.atomic():
+                for i in range(min_length):
+                    current_seat = no_seats[i]
+                    current_date = dates[i]
+                    alt_date = das[i] if i < len(das) else None
+                    dep = depcitys[i]
+                    des = descitys[i]
+                    plate = plate_nos[i]
+                    current_user = usernames[i] if i < len(usernames) else ""
+
+                    # --- ROUTE & BUS VALIDATION ---
+                    routes = Route.objects.filter(depcity=dep, descity=des, date=current_date, plate_no=plate)
+                    bus = Bus.objects.filter(plate_no=plate).first()
+
+                    if not bus:
+                        return Response({'error': f'Bus {plate} not found'}, status=404)
+
+                    # --- PREPARE ERROR CONTEXT ---
+                    total_seats = int(bus.no_seats)
+                    booked_in_db = Ticket.objects.filter(depcity=dep, descity=des, date=current_date, plate_no=plate).values_list('no_seat', flat=True)
+                    booked_seats_list = list(set(int(s) for s in booked_in_db if s))
+                    unbooked_seats = [s for s in range(1, total_seats + 1) if s not in booked_seats_list]
+                    
+
+                    
+
+
+
+
+                    error_context = {
+                        'des': City.objects.all(),
+                        'routes': RouteSerializer(routes, many=True).data,
+                        'levels': bus.level,
+                        'remaining_seats': total_seats - len(booked_seats_list),
+                        'unbooked_seats': unbooked_seats,
+                        'booked_seats': booked_seats_list,
+                        'all_seats': list(range(1, total_seats + 1)),
+                    }
+
+                    # --- VALIDATION: SEAT SELECTION ---
+                    if current_seat in used_seats or int(current_seat) in booked_seats_list and not current_user:
+                        error_msg = f'Seat {current_seat} already selected.'
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            return render(request, 'users/ticket.html', error_context, status=400)
+                        return Response({'error': error_msg}, status=400)
+                    else:
+                        username = Worker.objects.filter(username=current_user).first()
+                        error_msg = f'Seat {current_seat} already selected.'
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            return render(request, 'users/booker.html', error_context, 'usernam': username status=400)
+                        return Response({'error': error_msg}, status=400)
+                    
+
+
+
+
+
+
+
+
+
+
+
+                    # --- PREPARE ERROR CONTEXT ---
+                    error_context = {
+                    'des': City.objects.all(),
+                    'routes': RouteSerializer(routes, many=True).data,
+                    'levels': bus.level,
+                    'remaining_seats': total_seats - len(booked_seats_list),
+                    'unbooked_seats': unbooked_seats,
+                    'booked_seats': booked_seats_list,
+                    'all_seats': list(range(1, total_seats + 1)),
+                    }
+
+                    # --- VALIDATION: SEAT SELECTION ---
+                    # Logic: Block if seat is already in use, UNLESS there is a current_user (Agent)
+                    seat_is_taken = current_seat in used_seats or int(current_seat) in booked_seats_list
+
+                    if seat_is_taken and not current_user:
+                        error_msg = f'Seat {current_seat} already selected.'
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            # Renders the standard ticket page for guest errors
+                            return render(request, 'users/ticket.html', error_context, status=400)
+                        return Response({'error': error_msg}, status=400)
+
+                    elif seat_is_taken and current_user:
+                        # If an agent tries to select an occupied seat and it's NOT a transfer (no 'da' provided)
+                        # You can customize this if you want to allow or block agents specifically
+                        worker_obj = Worker.objects.filter(username=current_user).first()
+                        error_msg = f'Seat {current_seat} is currently occupied.'
+
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            error_context['username'] = worker_obj # Fixed key and object
+                            # Renders the booker/agent specific page
+                            return render(request, 'users/booker.html', error_context, status=400)
+                        return Response({'error': error_msg}, status=400)
+
+                    # --- VALIDATION: ALREADY BOOKED CHECK ---
+                    already_booked = Ticket.objects.filter(
+                        firstname=firstnames[i],
+                        lastname=lastnames[i],
+                        depcity=dep,
+                        descity=des
+                    ).filter(Q(date=current_date) | Q(date=alt_date)).exists()
+
+                    if already_booked and not current_user:
+                        error_msg = f"Person already booked: {firstnames[i]} {lastnames[i]} for {current_date}{f' or {alt_date}' if alt_date and alt_date != 'None' else ''}."
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            return render(request, 'users/ticket.html', error_context, status=400)
+                        return Response({'error': error_msg}, status=400)
+                    else:
+                        error_msg = f"Person already booked: {firstnames[i]} {lastnames[i]} for {current_date}{f' or {alt_date}' if alt_date and alt_date != 'None' else ''}."
+                        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                            error_context['error'] = error_msg
+                            return render(request, 'users/booker.html', error_context, status=400)
+                        return Response({'error': error_msg}, status=400)
+
+                    # --- SAVE TICKET ---
+                    used_seats.add(current_seat)
+                    level = bus.level if bus else "Standard"
+
+                    validated_data = {
+                        'firstname': firstnames[i],
+                        'lastname': lastnames[i],
+                        'phone': phones[i],
+                        'price': prices[i],
+                        'side_no': side_nos[i],
+                        'plate_no': plate,
+                        'date': current_date,
+                        'email': emails[i],
+                        'gender': genders[i],
+                        'depcity': dep,
+                        'descity': des,
+                        'username': current_user,
+                        'no_seat': current_seat,
+                    }
+                    
+                    ticket_instance = Ticket.objects.create(**validated_data)
+                    tickets.append(ticket_instance)
+
+                    # Lookup Agent Name for the context
+                    if current_user:
+                        worker = Worker.objects.filter(username=current_user).first()
+                        if worker:
+                            fname = worker.fname
+                            lname = worker.lname
+
+                # --- DELETE EXISTING TICKETS FOR DA (Transfer Logic) ---
+                if prs:
+                    for i in range(min_length):
+                        if i < len(das):
+                            Ticket.objects.filter(
+                                firstname=firstnames[i],
+                                lastname=lastnames[i],
+                                date=das[i],
+                                depcity=depcitys[i],
+                                descity=descitys[i]
+                            ).delete()
+
+            # --- SUCCESS RESPONSES ---
+            if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+                context = {
+                    'success': 'Ticket(s) booked successfully!',
+                    'tickets': tickets,
+                    'total_price': total_price,
+                    'level': level,
+                    'fname': fname,
+                    'lname': lname
+                }
+                if not usernames or not usernames[0]:
+                    return render(request, 'users/payment.html', context)
+                else:
+                    return render(request, 'users/myticket.html', context)
+
+            serializer = TicketSerializer(tickets, many=True)
+            return Response({'message': 'Booking successful.', 'tickets': serializer.data}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+"""
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,6 +1,6 @@
 from django.urls import path
 from .import views
-from .views import Workerdelet, DeleteTicketViews, DeleteTicketsView, SeeView, Changepassenger, Activates, Activate, TicketBookingViews, Books, Totalballance,  Specific, Serviceupdate, MyBus, ServicInsertView, UpdateTicketViews, ScDeleteViews, Scchange,  Sce, SelView, MyRoute, BusInsertView, ShowTicketsViewss,ScInsertViews, BusInsertViews, businsert, Safaricompassword, ForgotPasswordView, Boapassword, Cbepassword, Awashpassword, Telebirrpassword, ShowTicketsViews,TelebirrPaymentView, SafariPaymentView, AwashPaymentView, CbePaymentView, BoaPaymentView, ProcessPaymentView, SelectView,ChangesBusView, ChangePasswordView, ChangeBusesViews, DeleteTickets, BusUpdateViewss, BusDeleteViews,CommentDeleteViews, WorkerDeleteViews, RouteDeleteViews, CityDeleteViews, About, AdminDeleteViews, LoginView,  BusInsert, HomeViews, BookView, GetTicketViews, CommentsView,  CityInsertView, RoutesInsertView, UrRegisterView, Workers, TicketInfoView, SelectBusView, RegisterView, Buse, Com, Rout, Use, Drivers, WorkerView, RouteView, SelectBusView, SelectView, ChangePasswordView, RegisterView, CommentsView, SelectBusView,  RouteView
+from .views import Workerdelet, DeleteTicketViews, TicketBookingViews, DeleteTicketsView, SeeView, Changepassenger, Activates, Activate, TicketBookingViews, Books, Totalballance,  Specific, Serviceupdate, MyBus, ServicInsertView, UpdateTicketViews, ScDeleteViews, Scchange,  Sce, SelView, MyRoute, BusInsertView, ShowTicketsViewss,ScInsertViews, BusInsertViews, businsert, Safaricompassword, ForgotPasswordView, Boapassword, Cbepassword, Awashpassword, Telebirrpassword, ShowTicketsViews,TelebirrPaymentView, SafariPaymentView, AwashPaymentView, CbePaymentView, BoaPaymentView, ProcessPaymentView, SelectView,ChangesBusView, ChangePasswordView, ChangeBusesViews, DeleteTickets, BusUpdateViewss, BusDeleteViews,CommentDeleteViews, WorkerDeleteViews, RouteDeleteViews, CityDeleteViews, About, AdminDeleteViews, LoginView,  BusInsert, HomeViews, BookView, GetTicketViews, CommentsView,  CityInsertView, RoutesInsertView, UrRegisterView, Workers, TicketInfoView, SelectBusView, RegisterView, Buse, Com, Rout, Use, Drivers, WorkerView, RouteView, SelectBusView, SelectView, ChangePasswordView, RegisterView, CommentsView, SelectBusView,  RouteView
 from django.views.generic import RedirectView
 
 from django.urls import path
@@ -199,6 +199,7 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
     path('api/login/', LoginView.as_view(), name='api_login'),
     path('ticket/', TicketBookingViews.as_view(), name='ticket'),
+    path('agentbooking/', TicketBookingViews.as_view(), name='agentbooking'),
     path('active/', Activate.as_view(), name='active'),
     #path('api/ticket/', TicketBookingViews.as_view(), name='api_ticket'),
     #path('root/', views.root, name='root'),
